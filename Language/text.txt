@@ -1,0 +1,7 @@
+function moja() {
+
+var xd = ok;
+print xd;
+}
+var ok = 1;
+moja(ok);

@@ -6,7 +6,7 @@ NEWLINE :   [\r\n]+ ;
 WS      :   [ \t]+ -> skip ;
 
 prog
-    :   (statement) (NEWLINE* statement)* NEWLINE*
+    :   (statement|NEWLINE*) (NEWLINE* statement)* NEWLINE*
     ;
 
 statement
@@ -18,31 +18,32 @@ statement
     |   variableDeclaration';'
     |   variableAssignment';'
     |   functionDefinition
+    |   functionCall
     ;
 
 printStatement
-    :   'print' STRING
+    :   'print ' STRING
     ;
 
 inputStatement
-    :   'input' STRING
+    :   'input ' STRING
     ;
 
 outputStatement
-    :   'output' STRING
+    :   'output ' STRING
     ;
 
 ifStatement
-    :   'if' expression codeBlock
-    (   'else' codeBlock )?
+    :   'if ' expression codeBlock
+    (   ' else ' codeBlock )?
     ;
 
 forStatement
-    :   'for' STRING 'in' expression codeBlock
+    :   'for ' STRING ' in ' expression codeBlock
     ;
 
 variableDeclaration
-    :   'final'?'var' (STRING|variableAssignment)
+    :   'final '?'var ' STRING '=' expression
     ;
 
 variableAssignment
@@ -50,9 +51,11 @@ variableAssignment
     ;
 
 functionDefinition
-    :   'function' STRING '(' parameterList? ')' codeBlock
+    :   'function ' STRING '(' parameterList? ')' codeBlock
     ;
-
+functionCall
+    :   STRING '(' parameterList? ');'
+    ;
 parameterList
     :   STRING (',' STRING)*
     ;
