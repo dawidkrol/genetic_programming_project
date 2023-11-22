@@ -10,7 +10,6 @@ class Node:
         self.value = value
         self.children = children or []
 
-
 def use_created_variable():
     return Node(random.choice(list(used_variables)))
 
@@ -67,7 +66,7 @@ def generate_output_statement():
 
 def generate_loop():
     condition = generate_condition(max_depth, terminal_nodes, function_nodes)
-    return Node('for a in ', [condition, generate_block(max_depth, terminal_nodes, function_nodes)])
+    return Node('for a in ')
 
 
 def generate_block(max_depth, terminal_nodes, function_nodes):
@@ -89,8 +88,8 @@ def generate_condition(max_depth, terminal_nodes, function_nodes):
 
 
 def generate_if_statement():
-    condition = generate_condition(max_depth, terminal_nodes, function_nodes)
-    return Node('if', [condition, generate_block(max_depth, terminal_nodes, function_nodes)])
+    # condition = generate_condition(max_depth, terminal_nodes, function_nodes)
+    return Node('if')
 
 
 def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
@@ -104,8 +103,8 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
         'comparison_operator',
         'logical_operator',
         'output_statement',
-        # 'if_statement',
-        # 'loop'
+        'if_statement',
+        'loop'
         ]
 
     if options != None:
@@ -133,8 +132,8 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
     elif value == 'comparison_operator':
         node = generate_comparison_operator()
         node.children = [
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values']),
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values'])
+            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values','comparison_operator']),
+            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values','comparison_operator'])
         ]
         return node
     elif value == 'generate_number_or_used_values':
@@ -160,15 +159,17 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
         return node
     elif value == 'if_statement':
         node = generate_if_statement()
-        node.children = [generate_comparison_operator(),
-                         generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values']),
-                         generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values'])
+        node.children = [
+                         generate_program(max_depth, terminal_nodes, function_nodes, ['comparison_operator']),
+                         generate_block(max_depth, terminal_nodes, function_nodes)
                          ]
         return node
     elif value == 'loop':
         node = generate_loop()
-        node.children = [generate_comparison_operator(),
-                         generate_block(max_depth, terminal_nodes, function_nodes)]
+        node.children = [
+                         generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values']),
+                         generate_block(max_depth, terminal_nodes, function_nodes)
+                         ]
         return node
 
 
@@ -194,37 +195,81 @@ def crossover(parent1, parent2):
     subtree2 = random.choice(child2.children)
 
     subtree1_index = child1.children.index(subtree1)
-    child1.children[subtree1_index] = subtree2
 
     subtree2_index = child2.children.index(subtree2)
-    child2.children[subtree2_index] = subtree1
+
+    if isinstance(child1.value, type(child2.value)):
+        child1.children[subtree1_index].value, child2.children[subtree2_index].value = child2.children[subtree2_index].value, child1.children[subtree1_index].value
+        child1.children[subtree1_index].children, child2.children[subtree2_index].children = child2.children[subtree2_index].children, child1.children[subtree1_index].children
 
     return child1, child2
 
-
-def mutate(program, max_depth, terminal_nodes, function_nodes):
-    mutated_program = copy.deepcopy(program)
+def mutate(tree, max_depth, terminal_nodes, function_nodes):
+    # Create a deep copy of the tree to avoid modifying the original
+    mutated_program = copy.deepcopy(tree)
 
     if len(mutated_program.children) == 0:
         return mutated_program
 
+    # Randomly select a node to mutate
     node_to_mutate = random.choice(mutated_program.children)
 
-    if random.random() < 0.5:
-        if node_to_mutate.value == 'variable':
-            node_to_mutate.value = generate_number().value
-        elif node_to_mutate.value == 'comparison_operator':
-            node_to_mutate.value = generate_logical_operator().value
-        elif node_to_mutate.value == 'logical_operator':
-            node_to_mutate.value = generate_comparison_operator().value
-    else:
-        subtree_index = mutated_program.children.index(node_to_mutate)
-        if mutated_program.children[subtree_index].value in ['=',]:
-            mutated_program.children[subtree_index].children[0] = generate_number()
-        else:
-            mutated_program.children[subtree_index] = generate_program(max_depth - 1, terminal_nodes, function_nodes)
+    # Generate a new subtree to replace the selected node
+    new_subtree = generate_program(max_depth, terminal_nodes, function_nodes)
+
+    # Replace the selected node only if the values are compatible
+    if isinstance(node_to_mutate.value, type(new_subtree.value)):
+        node_to_mutate.value = new_subtree.value
+        node_to_mutate.children = new_subtree.children
 
     return mutated_program
+
+# def crossover(parent1, parent2):
+#     child1 = copy.deepcopy(parent1)
+#     child2 = copy.deepcopy(parent2)
+#
+#     if not child1.children or not child2.children:
+#         return child1, child2
+#
+#     subtree1 = random.choice(child1.children)
+#
+#     if not child2.children:
+#         return child1, child2
+#
+#     subtree2 = random.choice(child2.children)
+#
+#     subtree1_index = child1.children.index(subtree1)
+#     child1.children[subtree1_index] = subtree2
+#
+#     subtree2_index = child2.children.index(subtree2)
+#     child2.children[subtree2_index] = subtree1
+#
+#     return child1, child2
+
+
+# def mutate(program, max_depth, terminal_nodes, function_nodes):
+#     mutated_program = copy.deepcopy(program)
+#
+#     if len(mutated_program.children) == 0:
+#         return mutated_program
+#
+#     node_to_mutate = random.choice(mutated_program.children)
+#
+#     if random.random() < 0.5:
+#         if node_to_mutate.value == 'variable':
+#             node_to_mutate.value = generate_number().value
+#         elif node_to_mutate.value == 'comparison_operator':
+#             node_to_mutate.value = generate_logical_operator().value
+#         elif node_to_mutate.value == 'logical_operator':
+#             node_to_mutate.value = generate_comparison_operator().value
+#     else:
+#         subtree_index = mutated_program.children.index(node_to_mutate)
+#         if mutated_program.children[subtree_index].value in ['=',]:
+#             mutated_program.children[subtree_index].children[0] = generate_number()
+#         else:
+#             mutated_program.children[subtree_index] = generate_program(max_depth - 1, terminal_nodes, function_nodes)
+#
+#     return mutated_program
 
 
 '''Function for tensting program'''
