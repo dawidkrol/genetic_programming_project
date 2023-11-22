@@ -18,7 +18,7 @@ def generate_new_variable():
     while new_variable in used_variables:
         new_variable = 'i' + str(random.randint(1, 99999))
     used_variables.add(new_variable)
-    return Node(new_variable)
+    return new_variable
 
 
 def generate_operator():
@@ -34,12 +34,14 @@ def generate_number():
     elif option == 'float':
         return Node(str(random.uniform(-1.0, 1.0)))
 
-def generate_number_or_used_values():
+def generate_number_or_used_values(isFor=False):
     options = ['int', 'float']
     if len(used_variables) > 0:
         options.append('used_variables')
 
     option = random.choice(options)
+    if isFor:
+        return Node(str(random.randint(0, 9)))
     if option == 'int':
         return Node(str(random.randint(0, 9)))
     elif option == 'float':
@@ -98,10 +100,10 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
 
     def_options = [
         'new_variable',
-        'operator',
-        'number',
-        'comparison_operator',
-        'logical_operator',
+        #'operator',
+        #'number',
+        #'comparison_operator',
+        #'logical_operator',
         'output_statement',
         'if_statement',
         'loop'
@@ -122,7 +124,7 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
     elif value == 'generate_logical_value':
         return generate_logical_value()
     elif value == 'new_variable':
-        node = generate_new_variable()
+        node = Node('var '+generate_new_variable())
         node.children = [
             generate_program(max_depth, terminal_nodes, function_nodes, ['assignment',])
         ]
@@ -167,10 +169,12 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
     elif value == 'loop':
         node = generate_loop()
         node.children = [
-                         generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values']),
+                         generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_for_loop']),
                          generate_block(max_depth, terminal_nodes, function_nodes)
                          ]
         return node
+    elif value == 'generate_number_for_loop':
+        return generate_number_or_used_values(isFor=True)
 
 
 def generate_code(program):
@@ -205,19 +209,15 @@ def crossover(parent1, parent2):
     return child1, child2
 
 def mutate(tree, max_depth, terminal_nodes, function_nodes):
-    # Create a deep copy of the tree to avoid modifying the original
     mutated_program = copy.deepcopy(tree)
 
     if len(mutated_program.children) == 0:
         return mutated_program
-
-    # Randomly select a node to mutate
     node_to_mutate = random.choice(mutated_program.children)
 
-    # Generate a new subtree to replace the selected node
+
     new_subtree = generate_program(max_depth, terminal_nodes, function_nodes)
 
-    # Replace the selected node only if the values are compatible
     if isinstance(node_to_mutate.value, type(new_subtree.value)):
         node_to_mutate.value = new_subtree.value
         node_to_mutate.children = new_subtree.children
@@ -275,7 +275,6 @@ def mutate(tree, max_depth, terminal_nodes, function_nodes):
 '''Function for tensting program'''
 
 def evaluate_program(program, input_data):
-    # Implement your specific evaluation function here
     pass
 
 
@@ -364,11 +363,12 @@ population_size = 10
 
 population = run(input_data, output_data, population_size, max_depth, terminal_nodes, function_nodes)
 # best_program = min(population, key=lambda program: adaptation_function(output_data, evaluate_program(program, input_data)))
-# best_program = population[0]
+best_program = population[0]
 
-# serialize_program(best_program, 'serialized_program_regression.pkl')
-# deserialized_program = deserialize_program('serialized_program_regression.pkl')
+serialize_program(best_program, 'serialized_program_regression.pkl')
+deserialized_program = deserialize_program('serialized_program_regression.pkl')
+display_all_nodes(deserialized_program)
 
-for i in population:
-    display_all_nodes(i)
-    print('------------------------------------')
+# for i in population:
+#     display_all_nodes(deserialized_program)
+#     print('------------------------------------')

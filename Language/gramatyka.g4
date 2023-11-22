@@ -1,6 +1,6 @@
 grammar gramatyka;
 
-INT     :   '-'? [0-9]+ ;
+INT     :   '-'? [0-9]+'.'? [0-9]* ;
 STRING  :   [a-zA-Z][a-zA-Z0-9_]* ;
 NEWLINE :   [\r\n]+ ;
 WS      :   [ \t]+ -> skip ;
@@ -22,7 +22,7 @@ statement
     ;
 
 printStatement
-    :   'print ' STRING
+    :   'print ' (expression)
     ;
 
 inputStatement
@@ -30,7 +30,7 @@ inputStatement
     ;
 
 outputStatement
-    :   'output ' STRING
+    :   'output ' expression
     ;
 
 ifStatement

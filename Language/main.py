@@ -20,14 +20,18 @@ class MyVisitor(gramatykaVisitor):
 
     def visitPrintStatement(self, ctx):
         value = ctx.getText()[6:]
-        print(variables_dict[value])
+        print(self.visitExpression(value))
 
 
     # def visitInputStatement(self, ctx):
-    #     pass
-    #
+    #     with open('input.txt', 'w') as file:
+    #         value = ctx.getText()[7:]
+    #         file.write(str(variables_dict[value]))
+
     def visitOutputStatement(self, ctx):
-        print(ctx.getText()[7:-1])
+        with open('output.txt', 'w') as file:
+            value = ctx.getText()[7:]
+            file.write(str(self.visitExpression(value)))
 
     def visitIfStatement(self, ctx):
         data = replace_multiple_spaces(ctx.getText())
