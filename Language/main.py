@@ -34,10 +34,12 @@ class MyVisitor(gramatykaVisitor):
             file.write(str(self.visitExpression(value)))
 
     def visitIfStatement(self, ctx):
+        print(ctx.getText())
         data = replace_multiple_spaces(ctx.getText())
-        dataI = data.split(' ')
-        iterator = dataI[1][:dataI[1].find('{')]
-        iterator = self.visitExpression(iterator)
+        iterator = data[3:data.find('{')]
+        print(iterator)
+        iterator = self.visitComparison(iterator)
+        print(iterator)
         trueV = None
         falseV = None
         if 'else' in data:
@@ -65,28 +67,15 @@ class MyVisitor(gramatykaVisitor):
         for i in range(iterator):
             visitFun(block, visitor)
 
-
-    def visitVariableDeclaration(self, ctx):
-        data = ctx.getText().split('=')
-        name = data[0][4:]
-        variables_dict[name] = self.visitExpression(data[1])
-
-
     def visitVariableAssignment(self, ctx):
         data = ctx.getText().split('=')
         name = data[0]
         variables_dict[name] = self.visitExpression(data[1])
+    def visitWhile(self, ctx:gramatykaParser.WhileContext):
+        return self.visitChildren(ctx)
 
-
-    def visitFunctionDefinition(self, ctx):
-        data = replace_multiple_spaces(ctx.getText())
-        name = data[9:data.find('(')]
-        functions_dict[name] = data[data.find('{')+1:-1]
-
-    def visitFunctionCall(self, ctx):
-        data = ctx.getText()
-        block = functions_dict[data[:data.find('(')]]
-        visitFun(block, visitor)
+    def visitComparison(self, ctx):
+        return sympy.sympify(ctx)
 
     def visitExpression(self, ctx):
         data = None

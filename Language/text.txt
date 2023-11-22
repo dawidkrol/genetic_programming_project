@@ -1,9 +1,2 @@
-function moja() {
-
-var xd = ok;
-print xd;
-}
-var ok = 1;
-moja();
-print xd;
-output 7;
+xd = 5;
+if 2>1 and 2>1 {print xd;} else {xd = 1; print xd;}

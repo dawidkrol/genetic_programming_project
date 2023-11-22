@@ -14,11 +14,11 @@ statement
     |   inputStatement';'
     |   outputStatement';'
     |   ifStatement
-    |   forStatement
-    |   variableDeclaration';'
+    |   while
     |   variableAssignment';'
-    |   functionDefinition
-    |   functionCall
+    ;
+name
+    :   STRING
     ;
 
 printStatement
@@ -34,37 +34,27 @@ outputStatement
     ;
 
 ifStatement
-    :   'if ' expression codeBlock
+    :   'if ' comparison codeBlock
     (   ' else ' codeBlock )?
     ;
 
-forStatement
-    :   'for ' STRING ' in ' expression codeBlock
-    ;
-
-variableDeclaration
-    :   'final '?'var ' STRING '=' expression
+while
+    :   'while ' comparison codeBlock
     ;
 
 variableAssignment
-    :   STRING '=' expression
+    :   name '=' expression
     ;
 
-functionDefinition
-    :   'function ' STRING '(' parameterList? ')' codeBlock
+comparison
+    :   expression ('=='|'!='|'<'|'>'|'<='|'>=') expression
+    |   comparison (' and '|' or ') comparison
     ;
-functionCall
-    :   STRING '(' parameterList? ');'
-    ;
-parameterList
-    :   STRING (',' STRING)*
-    ;
-
 expression
     :   INT
-    |   STRING
+    |   name
     |   '(' expression ')'
-    |   expression ('*'|'/'|'+'|'-'|'=='|'!='|'<'|'>'|'<='|'>=') expression
+    |   expression ('*'|'/'|'+'|'-') expression
     ;
 
 codeBlock

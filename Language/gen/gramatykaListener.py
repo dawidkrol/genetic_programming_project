@@ -26,6 +26,15 @@ class gramatykaListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by gramatykaParser#name.
+    def enterName(self, ctx:gramatykaParser.NameContext):
+        pass
+
+    # Exit a parse tree produced by gramatykaParser#name.
+    def exitName(self, ctx:gramatykaParser.NameContext):
+        pass
+
+
     # Enter a parse tree produced by gramatykaParser#printStatement.
     def enterPrintStatement(self, ctx:gramatykaParser.PrintStatementContext):
         pass
@@ -62,21 +71,12 @@ class gramatykaListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by gramatykaParser#forStatement.
-    def enterForStatement(self, ctx:gramatykaParser.ForStatementContext):
+    # Enter a parse tree produced by gramatykaParser#while.
+    def enterWhile(self, ctx:gramatykaParser.WhileContext):
         pass
 
-    # Exit a parse tree produced by gramatykaParser#forStatement.
-    def exitForStatement(self, ctx:gramatykaParser.ForStatementContext):
-        pass
-
-
-    # Enter a parse tree produced by gramatykaParser#variableDeclaration.
-    def enterVariableDeclaration(self, ctx:gramatykaParser.VariableDeclarationContext):
-        pass
-
-    # Exit a parse tree produced by gramatykaParser#variableDeclaration.
-    def exitVariableDeclaration(self, ctx:gramatykaParser.VariableDeclarationContext):
+    # Exit a parse tree produced by gramatykaParser#while.
+    def exitWhile(self, ctx:gramatykaParser.WhileContext):
         pass
 
 
@@ -89,30 +89,12 @@ class gramatykaListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by gramatykaParser#functionDefinition.
-    def enterFunctionDefinition(self, ctx:gramatykaParser.FunctionDefinitionContext):
+    # Enter a parse tree produced by gramatykaParser#comparison.
+    def enterComparison(self, ctx:gramatykaParser.ComparisonContext):
         pass
 
-    # Exit a parse tree produced by gramatykaParser#functionDefinition.
-    def exitFunctionDefinition(self, ctx:gramatykaParser.FunctionDefinitionContext):
-        pass
-
-
-    # Enter a parse tree produced by gramatykaParser#functionCall.
-    def enterFunctionCall(self, ctx:gramatykaParser.FunctionCallContext):
-        pass
-
-    # Exit a parse tree produced by gramatykaParser#functionCall.
-    def exitFunctionCall(self, ctx:gramatykaParser.FunctionCallContext):
-        pass
-
-
-    # Enter a parse tree produced by gramatykaParser#parameterList.
-    def enterParameterList(self, ctx:gramatykaParser.ParameterListContext):
-        pass
-
-    # Exit a parse tree produced by gramatykaParser#parameterList.
-    def exitParameterList(self, ctx:gramatykaParser.ParameterListContext):
+    # Exit a parse tree produced by gramatykaParser#comparison.
+    def exitComparison(self, ctx:gramatykaParser.ComparisonContext):
         pass
 
 
