@@ -25,23 +25,23 @@ def generate_operator():
     return Node(random.choice(['+', '-', '*', '/']))
 
 
-def generate_number():
-    options = ['int', 'float']
-    option = random.choice(options)
+def generate_number(options=None):
+    def_options = ['int', 'float']
+    if options != None:
+        def_options = options
+    option = random.choice(def_options)
 
     if option == 'int':
         return Node(str(random.randint(0, 9)))
     elif option == 'float':
         return Node(str(random.uniform(-1.0, 1.0)))
 
-def generate_number_or_used_values(isFor=False):
+def generate_number_or_used_values():
     options = ['int', 'float']
     if len(used_variables) > 0:
         options.append('used_variables')
 
     option = random.choice(options)
-    if isFor:
-        return Node(str(random.randint(0, 9)))
     if option == 'int':
         return Node(str(random.randint(0, 9)))
     elif option == 'float':
@@ -67,36 +67,50 @@ def generate_output_statement():
 
 
 def generate_loop():
-    condition = generate_condition(max_depth, terminal_nodes, function_nodes)
     return Node('for a in ')
 
 
-def generate_block(max_depth, terminal_nodes, function_nodes):
-    return generate_program(max_depth - 1, terminal_nodes, function_nodes)
+def generate_block(max_depth):
+    return generate_program(max_depth - 1,[
+        'new_variable',
+        'output_statement',
+        'if_statement',
+        'loop'
+        ])
 
 
 def generate_logical_value():
     return Node(random.choice(['true', 'false']))
 
 
-def generate_condition(max_depth, terminal_nodes, function_nodes):
+def generate_condition(max_depth):
     options = ['number', 'constant', 'comparison_operator', 'logical_operator']
 
-    left_value = generate_program(max_depth - 1, terminal_nodes, function_nodes, options)
-    right_value = generate_program(max_depth - 1, terminal_nodes, function_nodes, options)
+    left_value = generate_program(max_depth - 1, options)
+    right_value = generate_program(max_depth - 1, options)
     logical_operator = generate_logical_operator()
 
     return Node(logical_operator.value, [left_value, right_value])
 
 
 def generate_if_statement():
-    # condition = generate_condition(max_depth, terminal_nodes, function_nodes)
     return Node('if')
 
 
-def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
-    if max_depth == 0:
-        return random.choice([generate_number,])()
+def generate_program(max_depth, options=None):
+    if max_depth <= 0:
+        node = generate_number_or_used_values()
+        # node.children = [
+        #     generate_number_or_used_values()
+        # ]
+        return node
+    #
+    # if max_depth == 1:
+    #     node = generate_output_statement()
+    #     node.children = [
+    #         generate_number_or_used_values()
+    #     ]
+    #     return node
 
     def_options = [
         'new_variable',
@@ -126,7 +140,7 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
     elif value == 'new_variable':
         node = Node('var '+generate_new_variable())
         node.children = [
-            generate_program(max_depth, terminal_nodes, function_nodes, ['assignment',])
+            generate_program(max_depth - 1, ['assignment',])
         ]
         return node
     elif value == 'number':
@@ -134,8 +148,8 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
     elif value == 'comparison_operator':
         node = generate_comparison_operator()
         node.children = [
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values','comparison_operator']),
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values','comparison_operator'])
+            generate_program(max_depth - 1, ['generate_number_or_used_values', 'comparison_operator']),
+            generate_program(max_depth - 1, ['generate_number_or_used_values', 'comparison_operator'])
         ]
         return node
     elif value == 'generate_number_or_used_values':
@@ -143,38 +157,38 @@ def generate_program(max_depth, terminal_nodes, function_nodes, options=None):
     elif value == 'logical_operator':
         node = generate_logical_operator()
         node.children = [
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_logical_value', 'comparison_operator']),
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_logical_value', 'comparison_operator'])
+            generate_program(max_depth - 1, ['generate_logical_value', 'comparison_operator']),
+            generate_program(max_depth - 1, ['generate_logical_value', 'comparison_operator'])
         ]
         return node
     elif value == 'assignment':
         node = generate_assignment()
         node.children = [
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values', 'comparison_operator', 'operator', 'generate_logical_value'])
+            generate_program(max_depth - 1, ['generate_number_or_used_values', 'comparison_operator', 'operator', 'generate_logical_value'])
         ]
         return node
     elif value == 'output_statement':
         node = generate_output_statement()
         node.children = [
-            generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_or_used_values', 'comparison_operator', 'operator', 'generate_logical_value'])
+            generate_program(max_depth - 1, ['generate_number_or_used_values', 'comparison_operator', 'operator', 'generate_logical_value'])
         ]
         return node
     elif value == 'if_statement':
         node = generate_if_statement()
         node.children = [
-                         generate_program(max_depth, terminal_nodes, function_nodes, ['comparison_operator']),
-                         generate_block(max_depth, terminal_nodes, function_nodes)
+                         generate_program(max_depth, ['comparison_operator']),
+                         generate_block(max_depth - 1)
                          ]
         return node
     elif value == 'loop':
         node = generate_loop()
         node.children = [
-                         generate_program(max_depth, terminal_nodes, function_nodes, ['generate_number_for_loop']),
-                         generate_block(max_depth, terminal_nodes, function_nodes)
+                         generate_program(max_depth, ['generate_number_for_loop']),
+                         generate_block(max_depth - 1)
                          ]
         return node
     elif value == 'generate_number_for_loop':
-        return generate_number_or_used_values(isFor=True)
+        return generate_number(['int'])
 
 
 def generate_code(program):
@@ -208,7 +222,7 @@ def crossover(parent1, parent2):
 
     return child1, child2
 
-def mutate(tree, max_depth, terminal_nodes, function_nodes):
+def mutate(tree, max_depth):
     mutated_program = copy.deepcopy(tree)
 
     if len(mutated_program.children) == 0:
@@ -216,7 +230,7 @@ def mutate(tree, max_depth, terminal_nodes, function_nodes):
     node_to_mutate = random.choice(mutated_program.children)
 
 
-    new_subtree = generate_program(max_depth, terminal_nodes, function_nodes)
+    new_subtree = generate_program(max_depth)
 
     if isinstance(node_to_mutate.value, type(new_subtree.value)):
         node_to_mutate.value = new_subtree.value
@@ -224,65 +238,13 @@ def mutate(tree, max_depth, terminal_nodes, function_nodes):
 
     return mutated_program
 
-# def crossover(parent1, parent2):
-#     child1 = copy.deepcopy(parent1)
-#     child2 = copy.deepcopy(parent2)
-#
-#     if not child1.children or not child2.children:
-#         return child1, child2
-#
-#     subtree1 = random.choice(child1.children)
-#
-#     if not child2.children:
-#         return child1, child2
-#
-#     subtree2 = random.choice(child2.children)
-#
-#     subtree1_index = child1.children.index(subtree1)
-#     child1.children[subtree1_index] = subtree2
-#
-#     subtree2_index = child2.children.index(subtree2)
-#     child2.children[subtree2_index] = subtree1
-#
-#     return child1, child2
-
-
-# def mutate(program, max_depth, terminal_nodes, function_nodes):
-#     mutated_program = copy.deepcopy(program)
-#
-#     if len(mutated_program.children) == 0:
-#         return mutated_program
-#
-#     node_to_mutate = random.choice(mutated_program.children)
-#
-#     if random.random() < 0.5:
-#         if node_to_mutate.value == 'variable':
-#             node_to_mutate.value = generate_number().value
-#         elif node_to_mutate.value == 'comparison_operator':
-#             node_to_mutate.value = generate_logical_operator().value
-#         elif node_to_mutate.value == 'logical_operator':
-#             node_to_mutate.value = generate_comparison_operator().value
-#     else:
-#         subtree_index = mutated_program.children.index(node_to_mutate)
-#         if mutated_program.children[subtree_index].value in ['=',]:
-#             mutated_program.children[subtree_index].children[0] = generate_number()
-#         else:
-#             mutated_program.children[subtree_index] = generate_program(max_depth - 1, terminal_nodes, function_nodes)
-#
-#     return mutated_program
-
-
-'''Function for tensting program'''
-
-def evaluate_program(program, input_data):
-    pass
-
 
 def tournament_selection(population, k):
     selected = []
     for _ in range(len(population)):
         tournament = random.sample(population, k)
-        # winner = min(tournament, key=lambda program: evaluate_program(program, input_data))
+        # winner = min(tournament, key=lambda program: adaptation_function(program, input_data))
+        #tmp
         winner = tournament[0]
         selected.append(winner)
 
@@ -309,14 +271,13 @@ def adaptation_function(output, pred) -> float:
     pass
 
 
-def run(input_data, output_data, population_size, max_depth, terminal_nodes, function_nodes):
-    population = [generate_program(max_depth, terminal_nodes, function_nodes)
+def run(input_data, output_data, population_size, max_depth):
+    population = [generate_program(max_depth)
                   for _ in range(population_size)]
 
     # Example evolution loop
     # for generation in range(10):
-    #     # Evaluate fitness (implement your specific evaluation function)
-    #     fitness_scores = [evaluate_program(program, input_data) for program in population]
+    #     fitness_scores = [adaptation_function(program, input_data) for program in population]
     #
     #     # Select parents using tournament selection
     #     parents = tournament_selection(population, 2)
@@ -346,23 +307,27 @@ def display_all_nodes(program, indent=0):
         print("  " * indent + f"Operator: {program.value}")
     elif program.value in {'true', 'false', '=', '+', '-', '*', '/'}:
         print("  " * indent + f"Operator: {program.value}")
+    elif program.value in {'for a in ', 'if'}:
+        print("  " * indent + f"Block: {program.value}")
     else:
         print("  " * indent + f"Value: {program.value}")
 
     for child in program.children:
         display_all_nodes(child, indent + 1)
 
+# Reurning program in proper format
+def return_program(program):
+    pass
 
-max_depth = 5
-terminal_nodes = 2
-function_nodes = 2
+
+max_depth = 2
 input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
 output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
 
-population_size = 10
+population_size = 1
 
-population = run(input_data, output_data, population_size, max_depth, terminal_nodes, function_nodes)
-# best_program = min(population, key=lambda program: adaptation_function(output_data, evaluate_program(program, input_data)))
+population = run(input_data, output_data, population_size, max_depth - 1)
+# best_program = min(population, key=lambda program: adaptation_function(output_data, adaptation_function(program, input_data)))
 best_program = population[0]
 
 serialize_program(best_program, 'serialized_program_regression.pkl')
