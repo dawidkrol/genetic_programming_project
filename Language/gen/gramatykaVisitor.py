@@ -19,6 +19,11 @@ class gramatykaVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by gramatykaParser#name.
+    def visitName(self, ctx:gramatykaParser.NameContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by gramatykaParser#printStatement.
     def visitPrintStatement(self, ctx:gramatykaParser.PrintStatementContext):
         return self.visitChildren(ctx)
@@ -39,13 +44,8 @@ class gramatykaVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by gramatykaParser#forStatement.
-    def visitForStatement(self, ctx:gramatykaParser.ForStatementContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by gramatykaParser#variableDeclaration.
-    def visitVariableDeclaration(self, ctx:gramatykaParser.VariableDeclarationContext):
+    # Visit a parse tree produced by gramatykaParser#while.
+    def visitWhile(self, ctx:gramatykaParser.WhileContext):
         return self.visitChildren(ctx)
 
 
@@ -54,18 +54,8 @@ class gramatykaVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by gramatykaParser#functionDefinition.
-    def visitFunctionDefinition(self, ctx:gramatykaParser.FunctionDefinitionContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by gramatykaParser#functionCall.
-    def visitFunctionCall(self, ctx:gramatykaParser.FunctionCallContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by gramatykaParser#parameterList.
-    def visitParameterList(self, ctx:gramatykaParser.ParameterListContext):
+    # Visit a parse tree produced by gramatykaParser#comparison.
+    def visitComparison(self, ctx:gramatykaParser.ComparisonContext):
         return self.visitChildren(ctx)
 
 
