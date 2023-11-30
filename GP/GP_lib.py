@@ -67,7 +67,7 @@ def generate_output_statement():
 
 
 def generate_loop():
-    return Node('for a in ')
+    return Node('while ')
 
 
 def generate_block(max_depth):
@@ -138,7 +138,7 @@ def generate_program(max_depth, options=None):
     elif value == 'generate_logical_value':
         return generate_logical_value()
     elif value == 'new_variable':
-        node = Node('var '+generate_new_variable())
+        node = Node(generate_new_variable())
         node.children = [
             generate_program(max_depth - 1, ['assignment',])
         ]
@@ -183,7 +183,7 @@ def generate_program(max_depth, options=None):
     elif value == 'loop':
         node = generate_loop()
         node.children = [
-                         generate_program(max_depth, ['generate_number_for_loop']),
+                         generate_program(max_depth, ['comparison_operator']),
                          generate_block(max_depth - 1)
                          ]
         return node
@@ -307,7 +307,7 @@ def display_all_nodes(program, indent=0):
         print("  " * indent + f"Operator: {program.value}")
     elif program.value in {'true', 'false', '=', '+', '-', '*', '/'}:
         print("  " * indent + f"Operator: {program.value}")
-    elif program.value in {'for a in ', 'if'}:
+    elif program.value in {'while ', 'if'}:
         print("  " * indent + f"Block: {program.value}")
     else:
         print("  " * indent + f"Value: {program.value}")
@@ -320,7 +320,7 @@ def return_program(program):
     pass
 
 
-max_depth = 2
+max_depth = 5
 input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
 output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
 
