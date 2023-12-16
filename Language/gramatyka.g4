@@ -1,6 +1,6 @@
 grammar gramatyka;
 
-INT     :   '-'? [0-9]+'.'? [0-9]* ;
+INT     :   [0-9]+;
 STRING  :   [a-zA-Z][a-zA-Z0-9_]* ;
 NEWLINE :   [\r\n]+ ;
 WS      :   [ \t]+ -> skip ;
@@ -26,7 +26,7 @@ printStatement
     ;
 
 inputStatement
-    :   'input ' STRING
+    :   'input'
     ;
 
 outputStatement
@@ -43,12 +43,13 @@ while
     ;
 
 variableAssignment
-    :   name '=' expression
+    :   name '=' (expression|inputStatement)
     ;
 
 comparison
     :   expression ('=='|'!='|'<'|'>'|'<='|'>=') expression
     |   comparison (' and '|' or ') comparison
+    | ('True'|'False')
     ;
 expression
     :   INT

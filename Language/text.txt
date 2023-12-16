@@ -1,2 +1,3 @@
-xd = 5;
-if 2>1 and 2>1 {print xd;} else {xd = 1; print xd;}
+xd1 = input;
+xd2 = input;
+print xd2;
