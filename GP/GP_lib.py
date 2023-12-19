@@ -34,13 +34,15 @@ def generate_number(options=None):
         return Node(str(random.randint(0, 9)))
 
 def generate_number_or_used_values():
-    options = ['int']
+    options = ['int', 'input']
     if len(used_variables) > 0:
         options.append('used_variables')
 
     option = random.choice(options)
     if option == 'int':
         return Node(str(random.randint(0, 9)))
+    elif option == 'input':
+        return Node('input')
     elif option == 'used_variables':
         return Node(str(random.choice(list(used_variables))))
 
@@ -345,7 +347,7 @@ best_program = population[0]
 
 serialize_program(best_program, 'serialized_program_regression.pkl')
 deserialized_program = deserialize_program('serialized_program_regression.pkl')
-display_all_nodes(deserialized_program)
+# display_all_nodes(deserialized_program)
 
 def return_program(program):
     if program is None:
@@ -380,7 +382,7 @@ def return_program(program):
             condition = return_program(program.children[0])
             body = return_program(program.children[1])
             return f'if {condition} {{\n{body}\n}}'
-    elif program.value in {'true', 'false'}:
+    elif program.value in {'true', 'false', 'input'}:
         return program.value
     elif program.value.startswith('i'):
         if program.children:
@@ -394,11 +396,8 @@ def return_program(program):
         result = f'{program.value} {children_str}'.strip()
         return f'({result})' if program.children else result
 
-# Example usage
-serialized_program = return_program(deserialized_program)
-print(serialized_program)
 
-
-# for i in population:
-#     display_all_nodes(deserialized_program)
-#     print('------------------------------------')
+for i in population:
+    serialized_program = return_program(i)
+    print(serialized_program)
+    print('------------------------------------')
