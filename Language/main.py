@@ -30,6 +30,8 @@ class MyVisitor(gramatykaVisitor):
         self.used_lines += 1
         with open('output.txt', 'w') as file:
             value = ctx.getText()[7:]
+            if value == 'input':
+                value = int(input.pop(0))
             file.write(str(self.visitExpression(value)))
 
     def visitIfStatement(self, ctx):
@@ -72,29 +74,12 @@ class MyVisitor(gramatykaVisitor):
         if self.used_lines > 100:
             sys.exit("Error: Too many lines used")
         self.used_lines += 1
-        operators = ['==', '!=', '>=', '<=', '>', '<', 'and', 'or']
-        pattern = '|'.join(map(re.escape, operators))
-        while_id_split = re.split(f'({pattern})', while_id)
-        substrings = []
-        used_operators = []
-        for i in range(0, len(while_id_split), 2):
-            substrings.append(while_id_split[i])
-            if i + 1 < len(while_id_split):
-                used_operators.append(while_id_split[i + 1])
-        for g, x in enumerate(used_operators):
-            if (x == 'and' or x == 'or'):
-                continue
-            val1 = variables_dict[substrings[0]] if substrings[0] in variables_dict else substrings[0]
-            val2 = variables_dict[substrings[1]] if substrings[1] in variables_dict else substrings[1]
-            if len(substrings) > 2:
-                substrings.remove(substrings[0])
-                substrings.remove(substrings[0])
-            used_operators[g] = sympy.sympify(f'{val1} {x} {val2}')
-        while_id = ' '.join(str(x) for x in used_operators)
+        for key, value in variables_dict.items():
+            while_id = while_id.replace(key, str(value))
         return sympy.sympify(while_id)
 
     def visitExpression(self, ctx):
-        if isinstance(ctx, str):
+        if isinstance(ctx, str) or isinstance(ctx, int):
             data = ctx
         else:
             data = ctx.getText()

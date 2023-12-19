@@ -30,7 +30,7 @@ inputStatement
     ;
 
 outputStatement
-    :   'output ' expression
+    :   'output ' (expression|inputStatement|comparison)
     ;
 
 ifStatement
@@ -47,7 +47,7 @@ variableAssignment
     ;
 
 comparison
-    :   expression ('=='|'!='|'<'|'>'|'<='|'>=') expression
+    :   expression ('=='|'!='|'<'|'>'|'<='|'>=') (comparison|expression)
     |   comparison (' and '|' or ') comparison
     | ('True'|'False')
     ;
