@@ -1,2 +1,3 @@
-xd = 32;
-if 2<3<4 or 2>3 {print xd;}
+while 3!= input {
+output input;
+}

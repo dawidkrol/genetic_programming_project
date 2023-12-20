@@ -52,7 +52,7 @@ comparison
     | ('True'|'False')
     ;
 expression
-    :   INT
+    :   (INT|inputStatement)
     |   name
     |   '(' expression ')'
     |   expression ('*'|'/'|'+'|'-') expression

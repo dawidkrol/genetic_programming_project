@@ -31,13 +31,15 @@ class MyVisitor(gramatykaVisitor):
         with open('output.txt', 'w') as file:
             value = ctx.getText()[7:]
             if value == 'input':
-                value = int(input.pop(0))
+                value = int(input.pop(0)) if len(input) > 0 else 0
             file.write(str(self.visitExpression(value)))
 
     def visitIfStatement(self, ctx):
         data = replace_multiple_spaces(ctx.getText())
         iterator = data[3:data.find('{')]
         iterator = iterator.replace('True', '1>0').replace('False', '0>1')
+        while 'input' in iterator:
+            iterator = iterator[:iterator.find('input')] + str(int(input.pop(0))) + iterator[iterator.find('input')+5:]
         iterator = self.visitComparison(iterator)
         trueV = None
         falseV = None
@@ -64,6 +66,9 @@ class MyVisitor(gramatykaVisitor):
     def visitWhile(self, ctx:gramatykaParser.WhileContext):
         while_id = ctx.getText()[6:ctx.getText().find('{')]
         while_id = while_id.replace('True', '1>0').replace('False', '0>1')
+        while 'input' in while_id:
+            while_id = while_id[:while_id.find('input')] + str(int(input.pop(0))) + while_id[while_id.find('input')+5:]
+        print(while_id)
         to_check = self.visitComparison(while_id)
         while to_check:
             visitFun(ctx.getText()[ctx.getText().find('{')+1:-1], visitor)
