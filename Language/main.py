@@ -93,7 +93,8 @@ class MyVisitor(gramatykaVisitor):
 
         for key, value in variables_dict.items():
             data = data.replace(key, str(value))
-
+        while 'input' in data:
+            data = data[:data.find('input')] + str(int(input.pop(0))) + data[data.find('input')+5:]
         sympified_data = sympy.sympify(data)
         return sympified_data
 
