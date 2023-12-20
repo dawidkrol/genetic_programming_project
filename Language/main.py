@@ -87,7 +87,7 @@ class MyVisitor(gramatykaVisitor):
 
     def visitExpression(self, ctx):
         if isinstance(ctx, str) or isinstance(ctx, int):
-            data = ctx
+            data = str(ctx)
         else:
             data = ctx.getText()
 
