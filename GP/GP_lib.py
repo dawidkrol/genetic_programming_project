@@ -95,26 +95,8 @@ def generate_if_statement():
 
 
 def generate_program(max_depth, options=None):
-    # if max_depth <= 0:
-    #     node = generate_number_or_used_values()
-    #     # node.children = [
-    #     #     generate_number_or_used_values()
-    #     # ]
-    #     return node
-    # #
-    # # if max_depth == 1:
-    # #     node = generate_output_statement()
-    # #     node.children = [
-    # #         generate_number_or_used_values()
-    # #     ]
-    # #     return node
-
     def_options = [
         'new_variable',
-        # 'operator',
-        # 'number',
-        # 'comparison_operator',
-        # 'logical_operator',
         'output_statement',
         'if_statement',
         'loop'
@@ -376,12 +358,12 @@ def return_program(program):
         if len(program.children) == 2:
             condition = return_program(program.children[0])
             body = return_program(program.children[1])
-            return f'while {condition} {{\n{body}\n}}'
+            return f'while {condition} \n{{\n\t{body}\n}}'
     elif program.value == 'if':
         if len(program.children) == 2:
             condition = return_program(program.children[0])
             body = return_program(program.children[1])
-            return f'if {condition} {{\n{body}\n}}'
+            return f'if {condition} \n{{\n\t{body}\n}}'
     elif program.value in {'true', 'false', 'input'}:
         return program.value
     elif program.value.startswith('i'):
@@ -400,4 +382,4 @@ def return_program(program):
 for i in population:
     serialized_program = return_program(i)
     print(serialized_program)
-    print('------------------------------------')
+    # print('------------------------------------')
