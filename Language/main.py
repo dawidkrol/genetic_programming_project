@@ -28,11 +28,13 @@ class MyVisitor(gramatykaVisitor):
 
     def visitOutputStatement(self, ctx):
         self.used_lines += 1
-        with open('output.txt', 'w') as file:
+        with open('output.txt', 'a') as file:
             value = ctx.getText()[7:]
             if value == 'input':
                 value = int(input.pop(0)) if len(input) > 0 else 0
-            file.write(str(self.visitExpression(value)))
+            #append to file not overwrite if in same session
+            file.write(str(self.visitExpression(value)) + '\n')
+
 
     def visitIfStatement(self, ctx):
         data = replace_multiple_spaces(ctx.getText())
@@ -97,6 +99,10 @@ class MyVisitor(gramatykaVisitor):
 
 
 visitor = MyVisitor()
+def clear_output_file():
+    with open('output.txt', 'w') as file:
+        file.write('')
+clear_output_file()
 def visitFun(line, visitor):
     data = InputStream(line)
     # lexer
