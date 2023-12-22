@@ -68,13 +68,19 @@ class MyVisitor(gramatykaVisitor):
     def visitWhile(self, ctx:gramatykaParser.WhileContext):
         while_id = ctx.getText()[6:ctx.getText().find('{')]
         while_id = while_id.replace('True', '1>0').replace('False', '0>1')
-        while 'input' in while_id:
-            while_id = while_id[:while_id.find('input')] + str(int(input.pop(0))) + while_id[while_id.find('input')+5:]
-        print(while_id)
-        to_check = self.visitComparison(while_id)
+        new_while_id = while_id
+        while 'input' in new_while_id:
+            new_while_id = new_while_id[:new_while_id.find('input')] + str(int(input.pop(0))) + new_while_id[new_while_id.find('input') + 5:]
+        print(new_while_id)
+        to_check = self.visitComparison(new_while_id)
         while to_check:
             visitFun(ctx.getText()[ctx.getText().find('{')+1:-1], visitor)
-            to_check = self.visitComparison(while_id)
+            new_while_id = while_id
+            while 'input' in new_while_id:
+                new_while_id = new_while_id[:new_while_id.find('input')] + str(int(input.pop(0))) + new_while_id[
+                                                                                                    new_while_id.find(
+                                                                                                        'input') + 5:]
+            to_check = self.visitComparison(new_while_id)
 
 
     def visitComparison(self, while_id):
