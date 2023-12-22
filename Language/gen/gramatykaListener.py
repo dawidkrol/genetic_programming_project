@@ -1,6 +1,6 @@
-# Generated from C:/Users/dkmak/Desktop/genetic_programming_project/Language/gramatyka.g4 by ANTLR 4.13.1
+# Generated from C:/Users/dkmak/OneDrive/Pulpit/genetic_programming_project/Language\gramatyka.g4 by ANTLR 4.11.1
 from antlr4 import *
-if "." in __name__:
+if __name__ is not None and "." in __name__:
     from .gramatykaParser import gramatykaParser
 else:
     from gramatykaParser import gramatykaParser

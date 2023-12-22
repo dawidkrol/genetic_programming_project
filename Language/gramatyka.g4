@@ -43,7 +43,7 @@ while
     ;
 
 variableAssignment
-    :   name '=' (expression|inputStatement)
+    :   name '=' (expression|inputStatement|comparison)
     ;
 
 comparison
