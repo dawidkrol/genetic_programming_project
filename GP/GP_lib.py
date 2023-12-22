@@ -1,7 +1,7 @@
 import random
-import copy
 import pickle
 import numpy as np
+import program_variables as PV
 
 used_variables = set()
 
@@ -20,6 +20,7 @@ def generate_new_variable():
         new_variable = 'i' + str(random.randint(1, 99999))
     used_variables.add(new_variable)
     return new_variable
+
 
 def generate_operator():
     return Node(random.choice(['+', '-', '*', '/']))
@@ -68,12 +69,18 @@ def generate_loop():
 
 
 def generate_block(max_depth):
-    return generate_program(max_depth - 1, [
-        'new_variable',
-        'output_statement',
-        'if_statement',
-        'loop',
-    ])
+    if max_depth <= 2:
+        return generate_program(max_depth - 1, [
+            'new_variable',
+            'output_statement',
+        ])
+    else:
+        return generate_program(max_depth - 1, [
+            'new_variable',
+            'output_statement',
+            'if_statement',
+            'loop',
+        ])
 
 
 def generate_logical_value():
@@ -95,23 +102,29 @@ def generate_if_statement():
 
 
 def generate_program(max_depth, options=None):
-    def_options = [
-        'new_variable',
-        'output_statement',
-        'if_statement',
-        'loop'
-    ]
+    if max_depth <= 3:
+        def_options = [
+            'new_variable',
+            'output_statement'
+        ]
+    else:
+        def_options = [
+            'new_variable',
+            'output_statement',
+            'if_statement',
+            'loop'
+        ]
 
     if options is not None:
         def_options = options
 
-    if(max_depth == 0):
+    if max_depth == 0:
         return
 
-    if(max_depth == 1):
+    if max_depth == 1:
         def_options = ['generate_number_or_used_values']
 
-    if(max_depth == 2):
+    if max_depth == 2:
         def_options = list(set(def_options) - {'new_variable', 'loop', 'if_statement'})
 
     value = random.choice(def_options)
@@ -163,14 +176,14 @@ def generate_program(max_depth, options=None):
                                              'generate_logical_value'])
         ]
         return node
-    elif value == 'if_statement':
+    elif max_depth > 2 and value == 'if_statement':
         node = generate_if_statement()
         node.children = [
             generate_program(max_depth, ['comparison_operator']),
             generate_block(max_depth - 1)
         ]
         return node
-    elif value == 'loop':
+    elif max_depth > 2 and value == 'loop':
         node = generate_loop()
         node.children = [
             generate_program(max_depth, ['comparison_operator']),
@@ -188,73 +201,9 @@ def generate_code(program):
         return program.value
 
 
-def crossover(parent1, parent2):
-    child1 = copy.deepcopy(parent1)
-    child2 = copy.deepcopy(parent2)
-
-    if not child1.children or not child2.children:
-        return child1, child2
-
-    subtree1 = random.choice(child1.children)
-
-    if not child2.children:
-        return child1, child2
-
-    subtree2 = random.choice(child2.children)
-
-    subtree1_index = child1.children.index(subtree1)
-
-    subtree2_index = child2.children.index(subtree2)
-
-    if isinstance(child1.value, type(child2.value)):
-        child1.children[subtree1_index].value, child2.children[subtree2_index].value = child2.children[
-                                                                                           subtree2_index].value, \
-                                                                                       child1.children[
-                                                                                           subtree1_index].value
-        child1.children[subtree1_index].children, child2.children[subtree2_index].children = child2.children[
-                                                                                                 subtree2_index].children, \
-                                                                                             child1.children[
-                                                                                                 subtree1_index].children
-
-    return child1, child2
-
-
-def mutate(tree, max_depth):
-    mutated_program = copy.deepcopy(tree)
-
-    if len(mutated_program.children) == 0:
-        return mutated_program
-    node_to_mutate = random.choice(mutated_program.children)
-
-    new_subtree = generate_program(max_depth)
-
-    if isinstance(node_to_mutate.value, type(new_subtree.value)):
-        node_to_mutate.value = new_subtree.value
-        node_to_mutate.children = new_subtree.children
-
-    return mutated_program
-
-
-def tournament_selection(population, k):
-    selected = []
-    for _ in range(len(population)):
-        tournament = random.sample(population, k)
-        # winner = min(tournament, key=lambda program: adaptation_function(program, input_data))
-        # tmp
-        winner = tournament[0]
-        selected.append(winner)
-
-    if len(selected) % 2 != 0:
-        selected.pop()
-
-    parent_tuples = [(selected[i], selected[i + 1]) for i in range(0, len(selected), 2)]
-
-    return parent_tuples
-
-
 def serialize_program(program, filename):
-    with open(filename, 'wb') as file:
-        pickle.dump(program, file)
+    with open(filename, "wt") as file:
+        file.write(program)
 
 
 def deserialize_program(filename):
@@ -262,124 +211,78 @@ def deserialize_program(filename):
         return pickle.load(file)
 
 
-# '''Function for tensting program'''
-def adaptation_function(output, pred) -> float:
-    pass
-
-
-def run(input_data, output_data, population_size, max_depth):
-    population = [generate_program(max_depth)
-                  for _ in range(population_size)]
-
-    # Example evolution loop
-    # for generation in range(10):
-    #     fitness_scores = [adaptation_function(program, input_data) for program in population]
-    #
-    #     # Select parents using tournament selection
-    #     parents = tournament_selection(population, 2)
-    #
-    #     # Crossover and mutate
-    #     offspring = []
-    #     for parent_tuple in parents:
-    #         child1, child2 = crossover(parent_tuple[0], parent_tuple[1])
-    #         offspring.extend([mutate(child1, max_depth, terminal_nodes, function_nodes),
-    #                           mutate(child2, max_depth, terminal_nodes, function_nodes)])
-    #
-    #     # Replace old population with offspring
-    #     population = offspring
-
-    return population
-
-
-'''
-Displaying the output tree
-'''
-
-
-def display_all_nodes(program, indent=0):
-    if program == None:
-        return
-    if program.value in {'&&', '||', '<', '<=', '==', '!=', '>', '>='}:
-        print("  " * indent + f"Operator: {program.value}")
-    elif program.value in {'true', 'false', '=', '+', '-', '*', '/'}:
-        print("  " * indent + f"Operator: {program.value}")
-    elif program.value in {'while ', 'if'}:
-        print("  " * indent + f"Block: {program.value}")
-    else:
-        print("  " * indent + f"Value: {program.value}")
-
-    for child in program.children:
-        display_all_nodes(child, indent + 1)
-
-
-# Reurning program in proper format
-def return_program(program):
-    pass
-
-
-max_depth = 5
-input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
-output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
-
-population_size = 3
-
-population = run(input_data, output_data, population_size, max_depth - 1)
-# best_program = min(population, key=lambda program: adaptation_function(output_data, adaptation_function(program, input_data)))
-best_program = population[0]
-
-serialize_program(best_program, 'serialized_program_regression.pkl')
-deserialized_program = deserialize_program('serialized_program_regression.pkl')
-# display_all_nodes(deserialized_program)
-
-def return_program(program):
+def return_part(program):
     if program is None:
         return ''
 
     if program.value == 'output':
         if program.children:
-            return f'output {return_program(program.children[0])};'
+            return f'output {return_part(program.children[0])};'
         else:
             return 'output;'
     elif program.value == '=':
-        variable_name = return_program(program.children[0])
-        variable_value = return_program(program.children[1]) if len(program.children) == 2 else ''
+        variable_name = return_part(program.children[0])
+        variable_value = return_part(program.children[1]) if len(program.children) == 2 else ''
         return f'{variable_name} = {variable_value};'
     elif program.value in {'&&', '||', '<', '<=', '==', '!=', '>', '>='}:
         if len(program.children) == 2:
-            left_operand = return_program(program.children[0])
-            right_operand = return_program(program.children[1])
+            left_operand = return_part(program.children[0])
+            right_operand = return_part(program.children[1])
             return f'{left_operand} {program.value} {right_operand}'
     elif program.value in {'+', '-', '*', '/'}:
         if len(program.children) == 2:
-            left_operand = return_program(program.children[0])
-            right_operand = return_program(program.children[1])
+            left_operand = return_part(program.children[0])
+            right_operand = return_part(program.children[1])
             return f'{left_operand} {program.value} {right_operand}'
     elif program.value == 'while ':
         if len(program.children) == 2:
-            condition = return_program(program.children[0])
-            body = return_program(program.children[1])
-            return f'while {condition} \n{{\n\t{body}\n}}'
+            condition = return_part(program.children[0])
+            body = return_part(program.children[1])
+            return f'while {condition} {{ {body} }}'
     elif program.value == 'if':
         if len(program.children) == 2:
-            condition = return_program(program.children[0])
-            body = return_program(program.children[1])
-            return f'if {condition} \n{{\n\t{body}\n}}'
+            condition = return_part(program.children[0])
+            body = return_part(program.children[1])
+            return f'if {condition} {{ {body} }}'
     elif program.value in {'true', 'false', 'input'}:
         return program.value
     elif program.value.startswith('i'):
         if program.children:
-            value = return_program(program.children[0])
+            value = return_part(program.children[0])
             result = value[:-4]
             return f'{program.value} = {result};'
         else:
             return f'{program.value}'
     else:
-        children_str = " ".join(return_program(child) for child in program.children if child is not None)
+        children_str = " ".join(return_part(child) for child in program.children if child is not None)
         result = f'{program.value} {children_str}'.strip()
         return f'({result})' if program.children else result
 
+def return_program(program):
+    output = ""
+    for i, part in enumerate(program):
+        output += return_part(part)
+        output += "\n"
+    return output
 
-for i in population:
-    serialized_program = return_program(i)
-    print(serialized_program)
-    # print('------------------------------------')
+def generate_program_base(max_depth, max_width):
+    width = random.randint(1, max_width)
+    return [generate_program(max_depth) for _ in range(width)]
+
+def run(input_data, output_data, population_size, max_depth, max_width, generations):
+    population = [generate_program_base(max_depth, max_width) for _ in range(population_size)]
+
+    return population
+
+input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
+output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
+
+population = run(input_data, output_data, PV.POPULATION_SIZE, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.GENERATIONS)
+best_program = population[0]
+
+for i, program in enumerate(population):
+    serialized_program = return_program(program)
+    print(f'Individual {i + 1}:\n{serialized_program}')
+    print('------------------------------------')
+
+serialize_program(return_program(best_program), '../Language/text.txt')
