@@ -3,7 +3,7 @@ import program_variables as PV
 import program_evaluator as evaluator
 
 input_data = []
-output_data = [0, 3, 4, 5, 6]
+output_data = [0, 3, 4]
 
 population = gp.run(input_data, output_data, PV.POPULATION_SIZE, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.GENERATIONS)
 best_program = population[0]

@@ -141,3 +141,10 @@ def run():
     with open('./program.txt', 'r') as file:
         data = file.read().replace('\n', '\t')
         visitFun(data, visitor)
+
+def run_best_program():
+    get_input()
+    clear_output_file()
+    with open('./best_program.txt', 'r') as file:
+        data = file.read().replace('\n', '\t')
+        visitFun(data, visitor)
