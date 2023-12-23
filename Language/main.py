@@ -1,17 +1,23 @@
 import re
 import sys
 from antlr4 import *
-from gen.gramatykaLexer import gramatykaLexer
-from gen.gramatykaParser import gramatykaParser
-from gen.gramatykaVisitor import gramatykaVisitor
+from Language.gen.gramatykaLexer import gramatykaLexer
+from Language.gen.gramatykaParser import gramatykaParser
+from Language.gen.gramatykaVisitor import gramatykaVisitor
 import sympy
 
 variables_dict = {}
 input = []
-with open('input.txt', 'r') as file:
-    input = (file.read().split(' '))
+
+def get_input():
+    input.clear()
+    with open('./input.txt', 'r') as file:
+        input.extend((file.read().split(' ')))
+
 def replace_multiple_spaces(text):
     return re.sub(r'\s+', ' ', text)
+
+
 class MyVisitor(gramatykaVisitor):
     def __init__(self):
         self.used_lines = 0
@@ -28,7 +34,7 @@ class MyVisitor(gramatykaVisitor):
 
     def visitOutputStatement(self, ctx):
         self.used_lines += 1
-        with open('output.txt', 'a') as file:
+        with open('./output.txt', 'a') as file:
             value = ctx.getText()[7:]
             if value == 'input':
                 value = int(input.pop(0)) if len(input) > 0 else 0
@@ -104,12 +110,18 @@ class MyVisitor(gramatykaVisitor):
         sympified_data = sympy.sympify(data)
         return sympified_data
 
+def get_output():
+    output = []
+    with open('./output.txt', 'r') as file:
+        data = file.read()
+        output += data.strip().split("\n")
+    return output
 
-visitor = MyVisitor()
+
 def clear_output_file():
-    with open('output.txt', 'w') as file:
+    with open('./output.txt', 'w') as file:
         file.write('')
-clear_output_file()
+
 def visitFun(line, visitor):
     data = InputStream(line)
     # lexer
@@ -120,6 +132,12 @@ def visitFun(line, visitor):
     tree = parser.prog()
     # evaluator
     output = visitor.visit(tree)
-with open('text.txt', 'r') as file:
-    data = file.read()
-    visitFun(data, visitor)
+
+visitor = MyVisitor()
+
+def run():
+    get_input()
+    clear_output_file()
+    with open('./program.txt', 'r') as file:
+        data = file.read().replace('\n', '\t')
+        visitFun(data, visitor)

@@ -2,6 +2,7 @@ import random
 import pickle
 import numpy as np
 import program_variables as PV
+import program_evaluator as evaluator
 
 used_variables = set()
 
@@ -305,7 +306,24 @@ def mean_squared_error(output, target):
 
 
 def fitness(program, input_data, target_output):
-    return random.randint(0,10)
+    ftn = 0
+    try:
+        serialized_program = return_program(program)
+        serialize_program(serialized_program, './program.txt')
+        evaluator.run_generated()
+        result = evaluator.get_output()
+        res_len = len(result)
+        ex_len = len(target_output)
+        if res_len < ex_len:
+            ftn = res_len / ex_len
+        else:
+            ftn = ex_len/res_len
+    except:
+        # print("error")
+        return -1
+
+    return ftn
+
 
 
 def return_program(program):
@@ -323,22 +341,51 @@ def generate_program_base(max_depth, max_width):
     width = random.randint(1, max_width)
     return [generate_program(max_depth) for _ in range(width)]
 
+
 def run(input_data, output_data, population_size, max_depth, max_width, generations):
-    population = [generate_program_base(max_depth, max_width) for _ in range(population_size)]
+    serialize_program("", './program.txt')
+    population = []
+    for _ in range(population_size):
+        used_variables.clear()
+        population.append(generate_program_base(max_depth, max_width))
+
+    max_fitness = -1
+    best_program = None
 
     for i in range(generations):
-        best_program_index = 0
+        for idx, prog in enumerate(population):
+            fitness_score = fitness(prog, input_data, output_data)
+            if fitness_score < 0:
+                used_variables.clear()
+                population[idx] = generate_program_base(max_depth, max_width)
+            elif fitness_score > max_fitness:
+                max_fitness = fitness_score
+                best_program = prog
 
-        # Find the best program in the population
-        for j in range(1, population_size):
-            if fitness(population[j], input_data, output_data) > fitness(population[best_program_index], input_data,
-                                                                         output_data):
-                best_program_index = j
+        fitness_scores = [fitness(prog, input_data, output_data) for prog in population]
 
-        best_program = population[best_program_index]
+        max_fitness_index = fitness_scores.index(max(fitness_scores))
 
-        mutated_best_program = mutate_program(best_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.MUTATION_RATE)
-        population[best_program_index] = mutated_best_program
+        avg_fitness = sum(fitness_scores) / len(fitness_scores)
+
+        print(f'______________________{i}_____________________________')
+        print(f'Max Fitness: {fitness_scores[max_fitness_index]}')
+        print(f'Avg Fitness: {avg_fitness}')
+
+        if fitness_scores[max_fitness_index] >= 0.95:
+            print("__________!!! SOLVED !!!__________")
+            print(f"______________GENERATION: {i}_________________")
+            serialized_program = return_program(best_program)
+            print('Best program:')
+            print('___________________________________________')
+            print(serialized_program)
+            serialize_program(serialized_program, './best_program.txt')
+            return population
+
+        # Copy, mutate and replace the best program
+        max_fitness_program = population[max_fitness_index]
+        mutated_max_fitness_program = mutate_program(max_fitness_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.MUTATION_RATE)
+        population[max_fitness_index] = mutated_max_fitness_program
 
         parents = random.sample(population, 2)
         children = crossover(*parents)
@@ -347,24 +394,12 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
         population.remove(parents[1])
         population.extend(children)
 
-        print(f'______________________{i}_____________________________')
-        for j, program in enumerate(population):
-            serialized_program = return_program(program)
-            print(f'Individual {j + 1}:\n{serialized_program}')
-            print('------------------------------------')
+    print("__________!!! FINISHED !!!__________")
+    print(f'Best Fitness: {max_fitness}')
+    serialized_program = return_program(best_program)
+    print('Best program:')
+    print('___________________________________________')
+    print(serialized_program)
+    serialize_program(serialized_program, './best_program.txt')
 
     return population
-
-
-input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
-output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
-
-population = run(input_data, output_data, PV.POPULATION_SIZE, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.GENERATIONS)
-best_program = population[0]
-
-for i, program in enumerate(population):
-    serialized_program = return_program(program)
-    print(f'Individual {i + 1}:\n{serialized_program}')
-    print('------------------------------------')
-
-serialize_program(return_program(best_program), '../Language/text.txt')
