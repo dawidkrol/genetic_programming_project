@@ -11,9 +11,6 @@ class Node:
         self.children = children or []
 
 
-def use_created_variable():
-    return Node(random.choice(list(used_variables)))
-
 def generate_new_variable():
     new_variable = 'i' + str(random.randint(1, 99999))
     while new_variable in used_variables:
@@ -196,13 +193,6 @@ def generate_program(max_depth, options=None, isMutation=False):
         return generate_number(['int'])
 
 
-def generate_code(program):
-    if isinstance(program.value, str):
-        return program.value + " " + " ".join(generate_code(child) for child in program.children)
-    else:
-        return program.value
-
-
 def serialize_program(program, filename):
     with open(filename, "wt") as file:
         file.write(program)
@@ -295,55 +285,9 @@ def mutate_program(program, max_depth, max_width, mutation_rate):
     return program
 
 
-def crossover_programs(program1, program2):
-    # Flatten the program trees into lists for easier manipulation
-    flat_program1 = np.array(program1.flatten())
-    flat_program2 = np.array(program2.flatten())
-
-    def find_crossover_node(program):
-        for i in range(len(program)):
-            node = program[i]
-            # Ensure crossover point is within grammar restrictions (avoid breaking the structure)
-            if isinstance(node, Node) and node.value in ['print', 'input', 'output', 'if', 'while', '=']:
-                return i
-
-    # pick a node from each tree
-    cross_node1 = find_crossover_node(flat_program1)
-    cross_node2 = find_crossover_node(flat_program2)
-
-    # Perform the crossover
-    temp = flat_program1[cross_node1]
-    flat_program1[cross_node1] = flat_program2[cross_node2]
-    flat_program2[cross_node2] = temp
-
-    # Reshape the programs back to their tree structure
-    program1 = flat_program1.reshape(program1.structure())
-    program2 = flat_program2.reshape(program2.structure())
-
-    return program1, program2
-
-
-def flatten_tree(tree):
-    for node in tree:
-        if isinstance(node, list):
-            yield from flatten_tree(node)
-        else:
-            yield node
-
-
-def get_parent(tree, target_node):
-    for node in tree:
-        if isinstance(node, list):
-            if target_node in node:
-                return node
-            else:
-                parent = get_parent(node, target_node)
-                if parent is not None:
-                    return parent
-    return None
-
 def mean_squared_error(output, target):
     return np.mean((output - target) ** 2)
+
 
 def fitness(program, input_data, target_output):
     return random.randint(0,10)
@@ -378,7 +322,7 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
 
         best_program = population[best_program_index]
 
-        mutated_best_program = mutate_program(best_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, 0.5)
+        mutated_best_program = mutate_program(best_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.MUTATION_RATE)
         population[best_program_index] = mutated_best_program
 
         print(f'______________________{i}_____________________________')
