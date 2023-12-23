@@ -1,9 +1,9 @@
 import re
 import sys
 from antlr4 import *
-from Language.gen.gramatykaLexer import gramatykaLexer
-from Language.gen.gramatykaParser import gramatykaParser
-from Language.gen.gramatykaVisitor import gramatykaVisitor
+from gen.gramatykaLexer import gramatykaLexer
+from gen.gramatykaParser import gramatykaParser
+from gen.gramatykaVisitor import gramatykaVisitor
 import sympy
 
 variables_dict = {}
@@ -47,7 +47,8 @@ class MyVisitor(gramatykaVisitor):
         iterator = data[3:data.find('{')]
         iterator = iterator.replace('True', '1>0').replace('False', '0>1')
         while 'input' in iterator:
-            iterator = iterator[:iterator.find('input')] + str(int(input.pop(0))) + iterator[iterator.find('input')+5:]
+            vale = int(input.pop(0)) if len(input) > 0 else 0
+            iterator = iterator[:iterator.find('input')] + str(vale) + iterator[iterator.find('input')+5:]
         iterator = self.visitComparison(iterator)
         trueV = None
         falseV = None
@@ -76,13 +77,15 @@ class MyVisitor(gramatykaVisitor):
         while_id = while_id.replace('True', '1>0').replace('False', '0>1')
         new_while_id = while_id
         while 'input' in new_while_id:
-            new_while_id = new_while_id[:new_while_id.find('input')] + str(int(input.pop(0))) + new_while_id[new_while_id.find('input') + 5:]
+            vale = int(input.pop(0)) if len(input) > 0 else 0
+            new_while_id = new_while_id[:new_while_id.find('input')] + str(vale) + new_while_id[new_while_id.find('input') + 5:]
         to_check = self.visitComparison(new_while_id)
         while to_check:
             visitFun(ctx.getText()[ctx.getText().find('{')+1:-1], visitor)
             new_while_id = while_id
             while 'input' in new_while_id:
-                new_while_id = new_while_id[:new_while_id.find('input')] + str(int(input.pop(0))) + new_while_id[
+                vale = int(input.pop(0)) if len(input) > 0 else 0
+                new_while_id = new_while_id[:new_while_id.find('input')] + str(vale) + new_while_id[
                                                                                                     new_while_id.find(
                                                                                                         'input') + 5:]
             to_check = self.visitComparison(new_while_id)
@@ -105,7 +108,8 @@ class MyVisitor(gramatykaVisitor):
         for key, value in variables_dict.items():
             data = data.replace(key, str(value))
         while 'input' in data:
-            data = data[:data.find('input')] + str(int(input.pop(0))) + data[data.find('input')+5:]
+            vale = int(input.pop(0)) if len(input) > 0 else 0
+            data = data[:data.find('input')] + str(vale) + data[data.find('input')+5:]
         sympified_data = sympy.sympify(data)
         return sympified_data
 
@@ -147,3 +151,4 @@ def run_best_program():
     with open('./best_program.txt', 'r') as file:
         data = file.read().replace('\n', '\t')
         visitFun(data, visitor)
+run_best_program()
