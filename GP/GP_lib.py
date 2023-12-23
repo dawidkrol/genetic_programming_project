@@ -2,6 +2,7 @@ import random
 import pickle
 import numpy as np
 import program_variables as PV
+import program_evaluator as evaluator
 
 used_variables = set()
 
@@ -10,9 +11,6 @@ class Node:
         self.value = value
         self.children = children or []
 
-
-def use_created_variable():
-    return Node(random.choice(list(used_variables)))
 
 def generate_new_variable():
     new_variable = 'i' + str(random.randint(1, 99999))
@@ -101,7 +99,7 @@ def generate_if_statement():
     return Node('if')
 
 
-def generate_program(max_depth, options=None):
+def generate_program(max_depth, options=None, isMutation=False):
     if max_depth <= 3:
         def_options = [
             'new_variable',
@@ -118,7 +116,7 @@ def generate_program(max_depth, options=None):
     if options is not None:
         def_options = options
 
-    if max_depth == 0:
+    if max_depth == 0 or (max_depth == 1 and isMutation is True):
         return
 
     if max_depth == 1:
@@ -176,29 +174,24 @@ def generate_program(max_depth, options=None):
                                              'generate_logical_value'])
         ]
         return node
-    elif max_depth > 2 and value == 'if_statement':
-        node = generate_if_statement()
-        node.children = [
-            generate_program(max_depth, ['comparison_operator']),
-            generate_block(max_depth - 1)
-        ]
-        return node
-    elif max_depth > 2 and value == 'loop':
-        node = generate_loop()
-        node.children = [
-            generate_program(max_depth, ['comparison_operator']),
-            generate_block(max_depth - 1)
-        ]
+    if value in {'if_statement', 'loop'}:
+        node = generate_if_statement() if value == 'if_statement' else generate_loop()
+        condition = generate_program(max_depth, ['comparison_operator'])
+
+        # If condition is None, then we don't have a valid 'if' or 'while' statement. Need to regenerate condition.
+        if condition is None:
+            condition = generate_program(max_depth, ['comparison_operator'])
+
+        body = generate_block(max_depth - 1)
+
+        # If body is None, then our 'if' or 'while' doesn't have a proper body. Need to regenerate body.
+        if body is None:
+            body = generate_block(max_depth - 1)
+
+        node.children = [condition, body]
         return node
     elif value == 'generate_number_for_loop':
         return generate_number(['int'])
-
-
-def generate_code(program):
-    if isinstance(program.value, str):
-        return program.value + " " + " ".join(generate_code(child) for child in program.children)
-    else:
-        return program.value
 
 
 def serialize_program(program, filename):
@@ -258,10 +251,89 @@ def return_part(program):
         result = f'{program.value} {children_str}'.strip()
         return f'({result})' if program.children else result
 
+
+
+def generate_random_statement():
+    options = [
+        'new_variable',
+        'output_statement',
+        'if_statement',
+        'loop'
+    ]
+    choice = random.choice(options)
+    if choice == 'new_variable':
+        return generate_new_variable()
+    elif choice == 'output_statement':
+        return generate_output_statement()
+    elif choice == 'if_statement':
+        return generate_if_statement()
+    elif choice == 'loop':
+        return generate_loop()
+
+def mutate_program(program, max_depth, max_width, mutation_rate):
+    if isinstance(program, list):
+        for i in range(1, max_width-1):
+            j = random.randint(0, len(program)-1)
+            program[j] = mutate_program(program[j], max_depth - 1, max_width, mutation_rate)
+        return program
+
+    if random.random() < mutation_rate:
+        return generate_program(random.randint(1, max_depth + 2), None, True)
+    elif program is not None:
+        for child in program.children:
+            if max_depth >= 0:
+                mutate_program(child, max_depth - 1, max_width, mutation_rate)
+    return program
+
+
+def crossover(parent1, parent2):
+    # Skopiuj rodziców, aby uniknąć modyfikacji oryginalnych programów
+    parent1 = [node for node in parent1]
+    parent2 = [node for node in parent2]
+
+    # Wybierz punkty krosowania
+    cross_point1 = random.randint(0, len(parent1) - 1)
+    cross_point2 = random.randint(0, len(parent2) - 1)
+
+    # Wymień poddrzewa
+    parent1[cross_point1], parent2[cross_point2] = parent2[cross_point2], parent1[cross_point1]
+
+    return parent1, parent2
+
+
+def mean_squared_error(output, target):
+    return np.mean((output - target) ** 2)
+
+
+def fitness(program, input_data, target_output):
+    ftn = 0
+    try:
+        serialized_program = return_program(program)
+        serialize_program(serialized_program, './program.txt')
+        evaluator.run_generated()
+        result = evaluator.get_output()
+        res_len = len(result)
+        ex_len = len(target_output)
+        if res_len < ex_len:
+            ftn = res_len / ex_len
+        else:
+            ftn = ex_len/res_len
+    except:
+        # print("error")
+        return -1
+
+    return ftn
+
+
+
 def return_program(program):
     output = ""
-    for i, part in enumerate(program):
-        output += return_part(part)
+    if isinstance(program, list):
+        for i, part in enumerate(program):
+            output += return_part(part)
+            output += "\n"
+    else:
+        output += return_part(program)
         output += "\n"
     return output
 
@@ -269,20 +341,65 @@ def generate_program_base(max_depth, max_width):
     width = random.randint(1, max_width)
     return [generate_program(max_depth) for _ in range(width)]
 
+
 def run(input_data, output_data, population_size, max_depth, max_width, generations):
-    population = [generate_program_base(max_depth, max_width) for _ in range(population_size)]
+    serialize_program("", './program.txt')
+    population = []
+    for _ in range(population_size):
+        used_variables.clear()
+        population.append(generate_program_base(max_depth, max_width))
+
+    max_fitness = -1
+    best_program = None
+
+    for i in range(generations):
+        for idx, prog in enumerate(population):
+            fitness_score = fitness(prog, input_data, output_data)
+            if fitness_score < 0:
+                used_variables.clear()
+                population[idx] = generate_program_base(max_depth, max_width)
+            elif fitness_score > max_fitness:
+                max_fitness = fitness_score
+                best_program = prog
+
+        fitness_scores = [fitness(prog, input_data, output_data) for prog in population]
+
+        max_fitness_index = fitness_scores.index(max(fitness_scores))
+
+        avg_fitness = sum(fitness_scores) / len(fitness_scores)
+
+        print(f'______________________{i}_____________________________')
+        print(f'Max Fitness: {fitness_scores[max_fitness_index]}')
+        print(f'Avg Fitness: {avg_fitness}')
+
+        if fitness_scores[max_fitness_index] >= 0.95:
+            print("__________!!! SOLVED !!!__________")
+            print(f"______________GENERATION: {i}_________________")
+            serialized_program = return_program(best_program)
+            print('Best program:')
+            print('___________________________________________')
+            print(serialized_program)
+            serialize_program(serialized_program, './best_program.txt')
+            return population
+
+        # Copy, mutate and replace the best program
+        max_fitness_program = population[max_fitness_index]
+        mutated_max_fitness_program = mutate_program(max_fitness_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.MUTATION_RATE)
+        population[max_fitness_index] = mutated_max_fitness_program
+
+        parents = random.sample(population, 2)
+        children = crossover(*parents)
+
+        population.remove(parents[0])
+        population.remove(parents[1])
+        population.extend(children)
+
+    print("__________!!! FINISHED !!!__________")
+    print(f'Best Fitness: {max_fitness}')
+    serialized_program = return_program(best_program)
+    print('Best program:')
+    print('___________________________________________')
+    print(serialized_program)
+    serialize_program(serialized_program, './best_program.txt')
 
     return population
-
-input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
-output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
-
-population = run(input_data, output_data, PV.POPULATION_SIZE, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.GENERATIONS)
-best_program = population[0]
-
-for i, program in enumerate(population):
-    serialized_program = return_program(program)
-    print(f'Individual {i + 1}:\n{serialized_program}')
-    print('------------------------------------')
-
-serialize_program(return_program(best_program), '../Language/text.txt')
