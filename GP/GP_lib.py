@@ -176,11 +176,11 @@ def generate_program(max_depth, options=None, isMutation=False):
         return node
     if value in {'if_statement', 'loop'}:
         node = generate_if_statement() if value == 'if_statement' else generate_loop()
-        condition = generate_program(max_depth, ['comparison_operator'])
+        condition = generate_program(3, ['comparison_operator'])
 
         # If condition is None, then we don't have a valid 'if' or 'while' statement. Need to regenerate condition.
         if condition is None:
-            condition = generate_program(max_depth, ['comparison_operator'])
+            condition = generate_program(3, ['comparison_operator'])
 
         body = generate_block(max_depth - 1)
 
@@ -320,6 +320,10 @@ def fitness(program, input_data, target_output):
             ftn = ex_len/res_len
     except:
         # print("error")
+        serialized_program = return_program(program)
+        with open('error.txt', "a") as file:
+            file.write("\n_________________________________________________\n")
+            file.write(serialized_program)
         return -1
 
     return ftn
@@ -341,9 +345,19 @@ def generate_program_base(max_depth, max_width):
     width = random.randint(1, max_width)
     return [generate_program(max_depth) for _ in range(width)]
 
+def add_to_programs(program, fitness, generation):
+    serialized_program = return_program(program)
+    with open('best_by_generations.txt', "a") as file:
+        file.write("\n_________________________________________________\n")
+        file.write(f"Generation: {generation}\n")
+        file.write(f"Fitness: {fitness}\n\n")
+        file.write(serialized_program)
+
 
 def run(input_data, output_data, population_size, max_depth, max_width, generations):
     serialize_program("", './program.txt')
+    with open('best_by_generations.txt', "w") as file:
+        file.write("")
     population = []
     for _ in range(population_size):
         used_variables.clear()
@@ -352,7 +366,7 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
     max_fitness = -1
     best_program = None
 
-    for i in range(generations):
+    for generation in range(generations):
         for idx, prog in enumerate(population):
             fitness_score = fitness(prog, input_data, output_data)
             if fitness_score < 0:
@@ -366,15 +380,17 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
 
         max_fitness_index = fitness_scores.index(max(fitness_scores))
 
+        add_to_programs(population[max_fitness_index], fitness_scores[max_fitness_index], generation)
+
         avg_fitness = sum(fitness_scores) / len(fitness_scores)
 
-        print(f'______________________{i}_____________________________')
+        print(f'______________________{generation}_____________________________')
         print(f'Max Fitness: {fitness_scores[max_fitness_index]}')
         print(f'Avg Fitness: {avg_fitness}')
 
         if fitness_scores[max_fitness_index] >= 0.95:
             print("__________!!! SOLVED !!!__________")
-            print(f"______________GENERATION: {i}_________________")
+            print(f"______________GENERATION: {generation}_________________")
             serialized_program = return_program(best_program)
             print('Best program:')
             print('___________________________________________')
@@ -397,8 +413,7 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
     print("__________!!! FINISHED !!!__________")
     print(f'Best Fitness: {max_fitness}')
     serialized_program = return_program(best_program)
-    print('Best program:')
-    print('___________________________________________')
+    print('__________________Best program_________________________')
     print(serialized_program)
     serialize_program(serialized_program, './best_program.txt')
 
