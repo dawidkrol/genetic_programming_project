@@ -101,7 +101,7 @@ def generate_if_statement():
     return Node('if')
 
 
-def generate_program(max_depth, options=None):
+def generate_program(max_depth, options=None, isMutation=False):
     if max_depth <= 3:
         def_options = [
             'new_variable',
@@ -118,7 +118,7 @@ def generate_program(max_depth, options=None):
     if options is not None:
         def_options = options
 
-    if max_depth == 0:
+    if max_depth == 0 or (max_depth == 1 and isMutation is True):
         return
 
     if max_depth == 1:
@@ -176,19 +176,21 @@ def generate_program(max_depth, options=None):
                                              'generate_logical_value'])
         ]
         return node
-    elif max_depth > 2 and value == 'if_statement':
-        node = generate_if_statement()
-        node.children = [
-            generate_program(max_depth, ['comparison_operator']),
-            generate_block(max_depth - 1)
-        ]
-        return node
-    elif max_depth > 2 and value == 'loop':
-        node = generate_loop()
-        node.children = [
-            generate_program(max_depth, ['comparison_operator']),
-            generate_block(max_depth - 1)
-        ]
+    if value in {'if_statement', 'loop'}:
+        node = generate_if_statement() if value == 'if_statement' else generate_loop()
+        condition = generate_program(max_depth, ['comparison_operator'])
+
+        # If condition is None, then we don't have a valid 'if' or 'while' statement. Need to regenerate condition.
+        if condition is None:
+            condition = generate_program(max_depth, ['comparison_operator'])
+
+        body = generate_block(max_depth - 1)
+
+        # If body is None, then our 'if' or 'while' doesn't have a proper body. Need to regenerate body.
+        if body is None:
+            body = generate_block(max_depth - 1)
+
+        node.children = [condition, body]
         return node
     elif value == 'generate_number_for_loop':
         return generate_number(['int'])
@@ -258,10 +260,103 @@ def return_part(program):
         result = f'{program.value} {children_str}'.strip()
         return f'({result})' if program.children else result
 
+
+
+def generate_random_statement():
+    options = [
+        'new_variable',
+        'output_statement',
+        'if_statement',
+        'loop'
+    ]
+    choice = random.choice(options)
+    if choice == 'new_variable':
+        return generate_new_variable()
+    elif choice == 'output_statement':
+        return generate_output_statement()
+    elif choice == 'if_statement':
+        return generate_if_statement()
+    elif choice == 'loop':
+        return generate_loop()
+
+def mutate_program(program, max_depth, max_width, mutation_rate):
+    if isinstance(program, list):
+        for i in range(1, max_width-1):
+            j = random.randint(0, len(program)-1)
+            program[j] = mutate_program(program[j], max_depth - 1, max_width, mutation_rate)
+        return program
+
+    if random.random() < mutation_rate:
+        return generate_program(random.randint(1, max_depth + 2), None, True)
+    elif program is not None:
+        for child in program.children:
+            if max_depth >= 0:
+                mutate_program(child, max_depth - 1, max_width, mutation_rate)
+    return program
+
+
+def crossover_programs(program1, program2):
+    # Flatten the program trees into lists for easier manipulation
+    flat_program1 = np.array(program1.flatten())
+    flat_program2 = np.array(program2.flatten())
+
+    def find_crossover_node(program):
+        for i in range(len(program)):
+            node = program[i]
+            # Ensure crossover point is within grammar restrictions (avoid breaking the structure)
+            if isinstance(node, Node) and node.value in ['print', 'input', 'output', 'if', 'while', '=']:
+                return i
+
+    # pick a node from each tree
+    cross_node1 = find_crossover_node(flat_program1)
+    cross_node2 = find_crossover_node(flat_program2)
+
+    # Perform the crossover
+    temp = flat_program1[cross_node1]
+    flat_program1[cross_node1] = flat_program2[cross_node2]
+    flat_program2[cross_node2] = temp
+
+    # Reshape the programs back to their tree structure
+    program1 = flat_program1.reshape(program1.structure())
+    program2 = flat_program2.reshape(program2.structure())
+
+    return program1, program2
+
+
+def flatten_tree(tree):
+    for node in tree:
+        if isinstance(node, list):
+            yield from flatten_tree(node)
+        else:
+            yield node
+
+
+def get_parent(tree, target_node):
+    for node in tree:
+        if isinstance(node, list):
+            if target_node in node:
+                return node
+            else:
+                parent = get_parent(node, target_node)
+                if parent is not None:
+                    return parent
+    return None
+
+def mean_squared_error(output, target):
+    return np.mean((output - target) ** 2)
+
+def fitness(program, input_data, target_output):
+    return random.randint(0,10)
+
+
 def return_program(program):
     output = ""
-    for i, part in enumerate(program):
-        output += return_part(part)
+    if isinstance(program, list):
+        for i, part in enumerate(program):
+            output += return_part(part)
+            output += "\n"
+    else:
+        output += return_part(program)
         output += "\n"
     return output
 
@@ -272,7 +367,28 @@ def generate_program_base(max_depth, max_width):
 def run(input_data, output_data, population_size, max_depth, max_width, generations):
     population = [generate_program_base(max_depth, max_width) for _ in range(population_size)]
 
+    for i in range(generations):
+        best_program_index = 0
+
+        # Find the best program in the population
+        for j in range(1, population_size):
+            if fitness(population[j], input_data, output_data) > fitness(population[best_program_index], input_data,
+                                                                         output_data):
+                best_program_index = j
+
+        best_program = population[best_program_index]
+
+        mutated_best_program = mutate_program(best_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, 0.5)
+        population[best_program_index] = mutated_best_program
+
+        print(f'______________________{i}_____________________________')
+        for j, program in enumerate(population):
+            serialized_program = return_program(program)
+            print(f'Individual {j + 1}:\n{serialized_program}')
+            print('------------------------------------')
+
     return population
+
 
 input_data = np.linspace(-1, 1, 100).reshape(-1, 1)
 output_data = 2 * input_data + np.sin(5 * input_data) + np.random.normal(0, 0.1, input_data.shape)
