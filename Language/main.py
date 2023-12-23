@@ -71,7 +71,6 @@ class MyVisitor(gramatykaVisitor):
         new_while_id = while_id
         while 'input' in new_while_id:
             new_while_id = new_while_id[:new_while_id.find('input')] + str(int(input.pop(0))) + new_while_id[new_while_id.find('input') + 5:]
-        print(new_while_id)
         to_check = self.visitComparison(new_while_id)
         while to_check:
             visitFun(ctx.getText()[ctx.getText().find('{')+1:-1], visitor)
