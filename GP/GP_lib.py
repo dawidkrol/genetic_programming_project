@@ -285,6 +285,21 @@ def mutate_program(program, max_depth, max_width, mutation_rate):
     return program
 
 
+def crossover(parent1, parent2):
+    # Skopiuj rodziców, aby uniknąć modyfikacji oryginalnych programów
+    parent1 = [node for node in parent1]
+    parent2 = [node for node in parent2]
+
+    # Wybierz punkty krosowania
+    cross_point1 = random.randint(0, len(parent1) - 1)
+    cross_point2 = random.randint(0, len(parent2) - 1)
+
+    # Wymień poddrzewa
+    parent1[cross_point1], parent2[cross_point2] = parent2[cross_point2], parent1[cross_point1]
+
+    return parent1, parent2
+
+
 def mean_squared_error(output, target):
     return np.mean((output - target) ** 2)
 
@@ -324,6 +339,13 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
 
         mutated_best_program = mutate_program(best_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.MUTATION_RATE)
         population[best_program_index] = mutated_best_program
+
+        parents = random.sample(population, 2)
+        children = crossover(*parents)
+
+        population.remove(parents[0])
+        population.remove(parents[1])
+        population.extend(children)
 
         print(f'______________________{i}_____________________________')
         for j, program in enumerate(population):
