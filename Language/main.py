@@ -97,7 +97,8 @@ class MyVisitor(gramatykaVisitor):
         self.used_lines += 1
         for key, value in variables_dict.items():
             while_id = while_id.replace(key, str(value))
-        return sympy.sympify(while_id)
+        result = eval(while_id)
+        return sympy.sympify(result)
 
     def visitExpression(self, ctx):
         if isinstance(ctx, str) or isinstance(ctx, int):
