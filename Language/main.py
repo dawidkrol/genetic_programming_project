@@ -1,9 +1,9 @@
 import re
 import sys
 from antlr4 import *
-from gen.gramatykaLexer import gramatykaLexer
-from gen.gramatykaParser import gramatykaParser
-from gen.gramatykaVisitor import gramatykaVisitor
+from Language.gen.gramatykaLexer import gramatykaLexer
+from Language.gen.gramatykaParser import gramatykaParser
+from Language.gen.gramatykaVisitor import gramatykaVisitor
 import sympy
 
 variables_dict = {}
@@ -139,12 +139,13 @@ def visitFun(line, visitor):
 
 visitor = MyVisitor()
 
-def run():
-    get_input()
+def run(inp):
+    input.append(inp)
     clear_output_file()
     with open('./program.txt', 'r') as file:
         data = file.read().replace('\n', '\t')
         visitFun(data, visitor)
+    input.clear()
 
 def run_best_program():
     get_input()

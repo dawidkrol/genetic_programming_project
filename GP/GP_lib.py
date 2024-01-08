@@ -1,10 +1,10 @@
 import random
-import pickle
 import numpy as np
 import program_variables as PV
 import program_evaluator as evaluator
 
 used_variables = set()
+
 
 class Node:
     def __init__(self, value, children=None):
@@ -23,6 +23,7 @@ def generate_new_variable():
 def generate_operator():
     return Node(random.choice(['+', '-', '*', '/']))
 
+
 def generate_number(options=None):
     def_options = ['int']
     if options != None:
@@ -31,6 +32,7 @@ def generate_number(options=None):
 
     if option == 'int':
         return Node(str(random.randint(0, 9)))
+
 
 def generate_number_or_used_values():
     options = ['int', 'input']
@@ -178,13 +180,11 @@ def generate_program(max_depth, options=None, isMutation=False):
         node = generate_if_statement() if value == 'if_statement' else generate_loop()
         condition = generate_program(3, ['comparison_operator'])
 
-        # If condition is None, then we don't have a valid 'if' or 'while' statement. Need to regenerate condition.
         if condition is None:
             condition = generate_program(3, ['comparison_operator'])
 
         body = generate_block(max_depth - 1)
 
-        # If body is None, then our 'if' or 'while' doesn't have a proper body. Need to regenerate body.
         if body is None:
             body = generate_block(max_depth - 1)
 
@@ -201,7 +201,7 @@ def serialize_program(program, filename):
 
 def deserialize_program(filename):
     with open(filename, 'rb') as file:
-        return pickle.load(file)
+        return file.read()
 
 
 def return_part(program):
@@ -252,7 +252,6 @@ def return_part(program):
         return f'({result})' if program.children else result
 
 
-
 def generate_random_statement():
     options = [
         'new_variable',
@@ -270,14 +269,15 @@ def generate_random_statement():
     elif choice == 'loop':
         return generate_loop()
 
+
 def mutate_program(program, max_depth, max_width, mutation_rate):
     if isinstance(program, list):
-        for i in range(1, max_width-1):
-            j = random.randint(0, len(program)-1)
+        for i in range(1, max_width - 1):
+            j = random.randint(0, len(program) - 1)
             program[j] = mutate_program(program[j], max_depth - 1, max_width, mutation_rate)
         return program
 
-    if random.random() < mutation_rate:
+    if random.randint(0, 100)/100 < mutation_rate:
         return generate_program(random.randint(1, max_depth + 2), None, True)
     elif program is not None:
         for child in program.children:
@@ -287,15 +287,12 @@ def mutate_program(program, max_depth, max_width, mutation_rate):
 
 
 def crossover(parent1, parent2):
-    # Skopiuj rodziców, aby uniknąć modyfikacji oryginalnych programów
     parent1 = [node for node in parent1]
     parent2 = [node for node in parent2]
 
-    # Wybierz punkty krosowania
     cross_point1 = random.randint(0, len(parent1) - 1)
     cross_point2 = random.randint(0, len(parent2) - 1)
 
-    # Wymień poddrzewa
     parent1[cross_point1], parent2[cross_point2] = parent2[cross_point2], parent1[cross_point1]
 
     return parent1, parent2
@@ -306,28 +303,31 @@ def mean_squared_error(output, target):
 
 
 def fitness(program, input_data, target_output):
-    ftn = 0
+    ftn = []
     try:
-        serialized_program = return_program(program)
-        serialize_program(serialized_program, './program.txt')
-        evaluator.run_generated()
-        result = evaluator.get_output()
-        res_len = len(result)
-        ex_len = len(target_output)
-        if res_len < ex_len:
-            ftn = res_len / ex_len
-        else:
-            ftn = ex_len/res_len
+        for i in range(len(target_output)):
+            if len(input_data) > i:
+                inp = input_data[i]
+            else:
+                inp = []
+            serialized_program = return_program(program)
+            serialize_program(serialized_program, './program.txt')
+            evaluator.run_generated(inp)
+            result = evaluator.get_output()
+            res_len = len(result)
+            ex_len = len(target_output[i])
+            if res_len < ex_len:
+                ftn.append(res_len / ex_len)
+            else:
+                ftn.append(ex_len / res_len)
     except:
-        # print("error")
         serialized_program = return_program(program)
         with open('error.txt', "a") as file:
             file.write("\n_________________________________________________\n")
             file.write(serialized_program)
         return -1
 
-    return ftn
-
+    return np.mean(ftn)
 
 
 def return_program(program):
@@ -341,9 +341,11 @@ def return_program(program):
         output += "\n"
     return output
 
+
 def generate_program_base(max_depth, max_width):
     width = random.randint(1, max_width)
     return [generate_program(max_depth) for _ in range(width)]
+
 
 def add_to_programs(program, fitness, generation):
     serialized_program = return_program(program)
@@ -353,8 +355,30 @@ def add_to_programs(program, fitness, generation):
         file.write(f"Fitness: {fitness}\n\n")
         file.write(serialized_program)
 
+def tournament_selection(population, fitness_scores, tournament_size):
+    new_population = []
+    population_size = len(population)
+
+    while len(new_population) < population_size:
+        tournament = random.sample(population, tournament_size)
+        tournament_witch_fitness = []
+        for i in range(tournament_size):
+            tournament_witch_fitness.append((tournament[i], fitness_scores[population.index(tournament[i])]))
+
+        winner = max(tournament_witch_fitness, key=lambda x: x[1])
+        new_population.append(winner)
+
+    return new_population
+
+def process_data(data):
+    output = []
+    for line in data:
+        output.append(line.split())
+    return [[int(x) for x in z] for z in output]
 
 def run(input_data, output_data, population_size, max_depth, max_width, generations):
+    output_data = process_data(output_data)
+    input_data = process_data(input_data)
     serialize_program("", './program.txt')
     with open('best_by_generations.txt', "w") as file:
         file.write("")
@@ -398,9 +422,9 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
             serialize_program(serialized_program, './best_program.txt')
             return population
 
-        # Copy, mutate and replace the best program
         max_fitness_program = population[max_fitness_index]
-        mutated_max_fitness_program = mutate_program(max_fitness_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH, PV.MUTATION_RATE)
+        mutated_max_fitness_program = mutate_program(max_fitness_program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
+                                                     PV.MUTATION_RATE)
         population[max_fitness_index] = mutated_max_fitness_program
 
         parents = random.sample(population, 2)
