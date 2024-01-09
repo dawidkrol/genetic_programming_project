@@ -418,7 +418,7 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
         if fitness_scores[max_fitness_index] >= 1.0:
             print("__________!!! SOLVED !!!__________")
             print(f"______________GENERATION: {generation}_________________")
-            serialized_program = return_program(best_program)
+            serialized_program = return_program(population[max_fitness_index])
             print('Best program:')
             print('___________________________________________')
             print(serialized_program)
