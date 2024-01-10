@@ -4,12 +4,9 @@ import program_variables as PV
 import program_evaluator as evaluator
 import matplotlib.pyplot as plt
 
-used_variables = set()
+from GP.Models.ProgramModel import Program
 
-class Program:
-    def __init__(self):
-        self.variables = set()
-        self.program = []
+used_variables = set()
 
 
 class Node:
@@ -171,15 +168,17 @@ def generate_program(max_depth, variables: set, options=None, isMutation=False):
     elif value == 'assignment':
         node = generate_assignment()
         node.children = [
-            generate_program(max_depth - 1, variables, ['generate_number_or_used_values', 'comparison_operator', 'operator',
-                                             'generate_logical_value'])
+            generate_program(max_depth - 1, variables,
+                             ['generate_number_or_used_values', 'comparison_operator', 'operator',
+                              'generate_logical_value'])
         ]
         return node
     elif value == 'output_statement':
         node = generate_output_statement()
         node.children = [
-            generate_program(max_depth - 1, variables, ['generate_number_or_used_values', 'comparison_operator', 'operator',
-                                             'generate_logical_value'])
+            generate_program(max_depth - 1, variables,
+                             ['generate_number_or_used_values', 'comparison_operator', 'operator',
+                              'generate_logical_value'])
         ]
         return node
     if value in {'if_statement', 'loop'}:
@@ -283,7 +282,7 @@ def mutate_program(program, max_depth, max_width, mutation_rate, variables):
             program[j] = mutate_program(program[j], max_depth - 1, max_width, mutation_rate, variables)
         return program
 
-    if random.randint(0, 100)/100 < mutation_rate:
+    if random.randint(0, 100) / 100 < mutation_rate:
         return generate_program(random.randint(1, max_depth + 2), variables, None, True)
     elif program is not None:
         for child in program.children:
@@ -299,7 +298,8 @@ def crossover(parent1: Program, parent2: Program):
     cross_point1 = random.randint(0, len(parent1_nodes) - 1)
     cross_point2 = random.randint(0, len(parent2_nodes) - 1)
 
-    parent1.program[cross_point1], parent2.program[cross_point2] = parent2_nodes[cross_point2], parent1_nodes[cross_point1]
+    parent1.program[cross_point1], parent2.program[cross_point2] = parent2_nodes[cross_point2], parent1_nodes[
+        cross_point1]
 
     return parent1, parent2
 
@@ -365,15 +365,18 @@ def add_to_programs(program, fitness, generation):
         file.write(f"Fitness: {fitness}\n\n")
         file.write(serialized_program)
 
+
 def process_data(data):
     output = []
     for line in data:
         output.append(line.split())
     return [[int(x) for x in z] for z in output]
 
+
 def run(input_data, output_data, population_size, max_depth, max_width, generations):
     avg_fitnesses = []
     max_fitnesses = []
+    min_fitnesses = []
     output_data = process_data(output_data)
     input_data = process_data(input_data)
     serialize_program("", './program.txt')
@@ -394,13 +397,15 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
                 population[idx] = generate_program_base(max_depth, max_width)
             elif fitness_score > max_fitness:
                 max_fitness = fitness_score
-                best_program = prog
 
         fitness_scores = [fitness(prog, input_data, output_data) for prog in population]
 
         max_fitness_index = fitness_scores.index(max(fitness_scores))
+        min_fitness_index = fitness_scores.index(min(fitness_scores))
 
-        add_to_programs(population[max_fitness_index], fitness_scores[max_fitness_index], generation)
+        best_program = population[max_fitness_index]
+
+        add_to_programs(best_program, fitness_scores[max_fitness_index], generation)
 
         avg_fitness = sum(fitness_scores) / len(fitness_scores)
 
@@ -409,28 +414,61 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
         print(f'Avg Fitness: {avg_fitness}')
         avg_fitnesses.append(avg_fitness)
         max_fitnesses.append(fitness_scores[max_fitness_index])
+        min_fitnesses.append(fitness_scores[min_fitness_index])
         plt.axis([0, generation + 1, -1.0, 1.0])
         plt.plot(range(0, generation + 1), avg_fitnesses, label="Avg Fitness")
         plt.plot(range(0, generation + 1), max_fitnesses, label="Max Fitness")
+        plt.plot(range(0, generation + 1), min_fitnesses, label="Min Fitness")
         plt.legend()
-        plt.pause(0.05)
+        plt.pause(0.0000001)
 
         if fitness_scores[max_fitness_index] >= 1.0:
             print("__________!!! SOLVED !!!__________")
             print(f"______________GENERATION: {generation}_________________")
-            serialized_program = return_program(population[max_fitness_index])
+            serialized_program = return_program(best_program)
             print('Best program:')
             print('___________________________________________')
             print(serialized_program)
             serialize_program(serialized_program, './best_program.txt')
             return population
 
-        max_fitness_program = population[max_fitness_index]
-        max_fitness_program.program = mutate_program(max_fitness_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
-                                                     PV.MUTATION_RATE, max_fitness_program.variables)
-        population[max_fitness_index] = max_fitness_program
+        if fitness_scores[max_fitness_index] <= 0.5 and generation/generations > 0.9:
+            top_scores = sorted(fitness_scores, reverse=True)[0:5]
+            for score in top_scores:
+                my_index = fitness_scores.index(score)
+                my_program = population[my_index]
+                my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
+                                                    PV.MUTATION_RATE, my_program.variables)
+                population[my_index] = my_program
 
-        parents = random.sample(population, 2)
+        elif fitness_scores[max_fitness_index] < 0.75 and generation/generations > 0.9:
+            top_scores = random.sample(sorted(fitness_scores, reverse=True)[:5], 1)
+            for score in top_scores:
+                my_index = fitness_scores.index(score)
+                my_program = population[my_index]
+                my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
+                                                    PV.MUTATION_RATE, my_program.variables)
+                population[my_index] = my_program
+
+        elif fitness_scores[max_fitness_index] >= 0.75 or generation/generations > 0.9:
+            top_scores = random.sample(sorted(fitness_scores, reverse=True)[1:5], 1)
+            for score in top_scores:
+                my_index = fitness_scores.index(score)
+                my_program = population[my_index]
+                my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
+                                                    PV.MUTATION_RATE, my_program.variables)
+                population[my_index] = my_program
+
+        worst_scores = sorted(fitness_scores, reverse=False)[0:10]
+
+        for score in worst_scores:
+            my_index = fitness_scores.index(score)
+            my_program = population[my_index]
+            my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
+                                                PV.MUTATION_RATE, my_program.variables)
+            population[my_index] = my_program
+
+        parents = random.sample(population[:10], 2)
         children = crossover(*parents)
 
         population.remove(parents[0])
