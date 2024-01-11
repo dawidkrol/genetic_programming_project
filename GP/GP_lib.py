@@ -6,9 +6,6 @@ import matplotlib.pyplot as plt
 
 from GP.Models.ProgramModel import Program
 
-used_variables = set()
-
-
 class Node:
     def __init__(self, value, children=None):
         self.value = value
@@ -39,15 +36,18 @@ def generate_number(options=None):
 
 def generate_number_or_used_values(variables):
     options = ['int', 'input']
-    if len(used_variables) > 0:
+    weights = [5, 4]
+    if len(variables) > 0:
         options.append('used_variables')
+        weights.append(4)
 
-    option = random.choice(options)
-    if option == 'int':
+    option = random.choices(options, cum_weights=weights)
+    if option == ['int']:
         return Node(str(random.randint(0, 9)))
-    elif option == 'input':
+    elif option == ['input']:
+        print(option)
         return Node('input')
-    elif option == 'used_variables':
+    elif option == ['used_variables']:
         return Node(str(random.choice(list(variables))))
 
 
@@ -183,10 +183,10 @@ def generate_program(max_depth, variables: set, options=None, isMutation=False):
         return node
     if value in {'if_statement', 'loop'}:
         node = generate_if_statement() if value == 'if_statement' else generate_loop()
-        condition = generate_program(3, variables, ['comparison_operator'])
+        condition = generate_program(2, variables, ['comparison_operator'])
 
         if condition is None:
-            condition = generate_program(3, variables, ['comparison_operator'])
+            condition = generate_program(2, variables, ['comparison_operator'])
 
         body = generate_block(max_depth - 1, variables)
 
@@ -372,8 +372,23 @@ def process_data(data):
         output.append(line.split())
     return [[int(x) for x in z] for z in output]
 
+def mutate_program_based_on_fitness(program, max_depth, max_width, mutation_rate, variables, fitness_score):
+    if fitness_score < 0:
+        return generate_program_base(random.randint(1, max_depth + 2), max_width)
 
-def run(input_data, output_data, population_size, max_depth, max_width, generations):
+    if random.randint(0, 100) / 100 < mutation_rate:
+        return generate_program_base(random.randint(1, max_depth + 2), max_width)
+    elif program is Program:
+        program.program = mutate_program(program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
+                                            PV.MUTATION_RATE, program.variables)
+    return program
+
+def dynamic_mutation_rate(generation, generations, base_mutation_rate):
+    # Example: Linearly decrease mutation rate over generations
+    return max(base_mutation_rate - (generation / generations) * base_mutation_rate, 0.1)
+
+
+def run(input_data, output_data, population_size, max_depth, max_width, generations, base_mutation_rate):
     avg_fitnesses = []
     max_fitnesses = []
     min_fitnesses = []
@@ -393,7 +408,6 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
         for idx, prog in enumerate(population):
             fitness_score = fitness(prog, input_data, output_data)
             if fitness_score < 0:
-                used_variables.clear()
                 population[idx] = generate_program_base(max_depth, max_width)
             elif fitness_score > max_fitness:
                 max_fitness = fitness_score
@@ -432,41 +446,11 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
             serialize_program(serialized_program, './best_program.txt')
             return population
 
-        if fitness_scores[max_fitness_index] <= 0.5 and generation/generations > 0.9:
-            top_scores = sorted(fitness_scores, reverse=True)[0:5]
-            for score in top_scores:
-                my_index = fitness_scores.index(score)
-                my_program = population[my_index]
-                my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
-                                                    PV.MUTATION_RATE, my_program.variables)
-                population[my_index] = my_program
+        mutation_rate = dynamic_mutation_rate(generation, generations, base_mutation_rate)
 
-        elif fitness_scores[max_fitness_index] < 0.75 and generation/generations > 0.9:
-            top_scores = random.sample(sorted(fitness_scores, reverse=True)[:5], 1)
-            for score in top_scores:
-                my_index = fitness_scores.index(score)
-                my_program = population[my_index]
-                my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
-                                                    PV.MUTATION_RATE, my_program.variables)
-                population[my_index] = my_program
-
-        elif fitness_scores[max_fitness_index] >= 0.75 or generation/generations > 0.9:
-            top_scores = random.sample(sorted(fitness_scores, reverse=True)[1:5], 1)
-            for score in top_scores:
-                my_index = fitness_scores.index(score)
-                my_program = population[my_index]
-                my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
-                                                    PV.MUTATION_RATE, my_program.variables)
-                population[my_index] = my_program
-
-        worst_scores = sorted(fitness_scores, reverse=False)[0:10]
-
-        for score in worst_scores:
-            my_index = fitness_scores.index(score)
-            my_program = population[my_index]
-            my_program.program = mutate_program(my_program.program, PV.MAX_DEPTH - 1, PV.MAX_WIDTH,
-                                                PV.MUTATION_RATE, my_program.variables)
-            population[my_index] = my_program
+        for idx, prog in enumerate(population):
+            population[idx] = mutate_program_based_on_fitness(prog, max_depth - 1, max_width, mutation_rate,
+                                                              prog.variables, fitness_scores[idx])
 
         parents = random.sample(population[:10], 2)
         children = crossover(*parents)
