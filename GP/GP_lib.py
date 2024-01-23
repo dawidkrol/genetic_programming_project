@@ -71,19 +71,19 @@ def generate_loop():
     return Node('while ')
 
 
-def generate_block(max_depth, variables):
+def generate_block(max_depth, max_width, variables):
     if max_depth <= 2:
-        return generate_program(max_depth - 1, variables, [
+        return generate_program(max_depth - 1, variables, options=[
             'new_variable',
             'output_statement',
         ])
     else:
-        return generate_program(max_depth - 1, variables, [
+        return [generate_program(max_depth - 1, variables, options=[
             'new_variable',
             'output_statement',
             'if_statement',
-            'loop',
-        ])
+            # 'loop',
+        ]) for i in range(random.randint(1, max_width))]
 
 
 def generate_logical_value():
@@ -93,8 +93,8 @@ def generate_logical_value():
 def generate_condition(max_depth, variables):
     options = ['number', 'constant', 'comparison_operator', 'logical_operator']
 
-    left_value = generate_program(max_depth - 1, variables, options)
-    right_value = generate_program(max_depth - 1, variables, options)
+    left_value = generate_program(max_depth - 1, variables, options=options)
+    right_value = generate_program(max_depth - 1, variables, options=options)
     logical_operator = generate_logical_operator()
 
     return Node(logical_operator.value, [left_value, right_value])
@@ -104,7 +104,7 @@ def generate_if_statement():
     return Node('if')
 
 
-def generate_program(max_depth, variables: set, options=None, isMutation=False):
+def generate_program(max_depth, variables: set, max_width=None, options=None, isMutation=False):
     if max_depth <= 3:
         def_options = [
             'new_variable',
@@ -144,7 +144,7 @@ def generate_program(max_depth, variables: set, options=None, isMutation=False):
     elif value == 'new_variable':
         node = Node(generate_new_variable(variables))
         node.children = [
-            generate_program(max_depth - 1, variables, ['assignment', ])
+            generate_program(max_depth - 1, variables, options=['assignment', ])
         ]
         return node
     elif value == 'number':
@@ -152,8 +152,8 @@ def generate_program(max_depth, variables: set, options=None, isMutation=False):
     elif value == 'comparison_operator':
         node = generate_comparison_operator()
         node.children = [
-            generate_program(max_depth - 1, variables, ['generate_number_or_used_values', 'comparison_operator']),
-            generate_program(max_depth - 1, variables, ['generate_number_or_used_values', 'comparison_operator'])
+            generate_program(max_depth - 1, variables, options=['generate_number_or_used_values', 'comparison_operator']),
+            generate_program(max_depth - 1, variables, options=['generate_number_or_used_values', 'comparison_operator'])
         ]
         return node
     elif value == 'generate_number_or_used_values':
@@ -161,15 +161,15 @@ def generate_program(max_depth, variables: set, options=None, isMutation=False):
     elif value == 'logical_operator':
         node = generate_logical_operator()
         node.children = [
-            generate_program(max_depth - 1, variables, ['generate_logical_value', 'comparison_operator']),
-            generate_program(max_depth - 1, variables, ['generate_logical_value', 'comparison_operator'])
+            generate_program(max_depth - 1, variables, options=['generate_logical_value', 'comparison_operator']),
+            generate_program(max_depth - 1, variables, options=['generate_logical_value', 'comparison_operator'])
         ]
         return node
     elif value == 'assignment':
         node = generate_assignment()
         node.children = [
             generate_program(max_depth - 1, variables,
-                             ['generate_number_or_used_values', 'comparison_operator', 'operator',
+                             options=['generate_number_or_used_values', 'comparison_operator', 'operator',
                               'generate_logical_value'])
         ]
         return node
@@ -177,21 +177,21 @@ def generate_program(max_depth, variables: set, options=None, isMutation=False):
         node = generate_output_statement()
         node.children = [
             generate_program(max_depth - 1, variables,
-                             ['generate_number_or_used_values', 'comparison_operator', 'operator',
+                             options=['generate_number_or_used_values', 'comparison_operator', 'operator',
                               'generate_logical_value'])
         ]
         return node
     if value in {'if_statement', 'loop'}:
         node = generate_if_statement() if value == 'if_statement' else generate_loop()
-        condition = generate_program(2, variables, ['comparison_operator'])
+        condition = generate_program(2, variables, options=['comparison_operator'])
 
         if condition is None:
-            condition = generate_program(2, variables, ['comparison_operator'])
+            condition = generate_program(2, variables, options=['comparison_operator'])
 
-        body = generate_block(max_depth - 1, variables)
+        body = generate_block(max_depth - 1, 3, variables)
 
         if body is None:
-            body = generate_block(max_depth - 1, variables)
+            body = generate_block(max_depth - 1, 3, variables)
 
         node.children = [condition, body]
         return node
@@ -235,12 +235,24 @@ def return_part(program):
     elif program.value == 'while ':
         if len(program.children) == 2:
             condition = return_part(program.children[0])
-            body = return_part(program.children[1])
+            body = ''
+            if isinstance(program.children[1], list):
+                for i, part in enumerate(program.children[1]):
+                    body += return_part(part)
+                    body += "\n"
+            else:
+                body = return_part(program.children[1])
             return f'while {condition} {{ {body} }}'
     elif program.value == 'if':
         if len(program.children) == 2:
             condition = return_part(program.children[0])
-            body = return_part(program.children[1])
+            body = ''
+            if isinstance(program.children[1], list):
+                for i, part in enumerate(program.children[1]):
+                    body += return_part(part)
+                    body += "\n"
+            else:
+                body = return_part(program.children[1])
             return f'if {condition} {{ {body} }}'
     elif program.value in {'true', 'false', 'input'}:
         return program.value
@@ -283,7 +295,7 @@ def mutate_program(program, max_depth, max_width, mutation_rate, variables):
         return program
 
     if random.randint(0, 100) / 100 < mutation_rate:
-        return generate_program(random.randint(1, max_depth + 2), variables, None, True)
+        return generate_program(random.randint(1, max_depth + 2), variables, None, None, True)
     elif program is not None:
         for child in program.children:
             if max_depth >= 0:
