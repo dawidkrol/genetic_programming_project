@@ -1,9 +1,11 @@
 import random
+from time import sleep
+
 import numpy as np
 import program_variables as PV
 import program_evaluator as evaluator
 import matplotlib.pyplot as plt
-
+from antlr4.error.Errors import RecognitionException, FailedPredicateException, NoViableAltException
 from GP.Models.ProgramModel import Program
 
 class Node:
@@ -338,7 +340,18 @@ def fitness(program, input_data, target_output):
                 ftn.append(res_len / ex_len)
             else:
                 ftn.append(ex_len / res_len)
+    except RecognitionException as e:
+        print("ANTLR Recognition Error:")
+        print(f"Line {e.offendingToken.line}, Column {e.offendingToken.column}: {e.message}")
+
+    except FailedPredicateException as e:
+        print("ANTLR Failed Predicate Error:")
+        print(f"Line {e.offendingToken.line}, Column {e.offendingToken.column}: {e.message}")
+    except NoViableAltException as e:
+        print("ANTLR No Viable Alternative Error:")
+        print(f"Line {e.offendingToken.line}, Column {e.offendingToken.column}: {e.message}")
     except:
+        print("ANTLR Error:")
         serialized_program = return_program(program)
         with open('error.txt', "a") as file:
             file.write("\n_________________________________________________\n")

@@ -66,7 +66,7 @@ class MyVisitor(gramatykaVisitor):
 
     def visitVariableAssignment(self, ctx):
         self.used_lines += 1
-        data = ctx.getText().split('=')
+        data = ctx.getText().split('=', 1)
         name = data[0]
         if data[1] == 'input':
             variables_dict[name] = int(input.pop(0))
@@ -89,7 +89,6 @@ class MyVisitor(gramatykaVisitor):
                                                                                                     new_while_id.find(
                                                                                                         'input') + 5:]
             to_check = self.visitComparison(new_while_id)
-
 
     def visitComparison(self, while_id):
         if self.used_lines > 100:
