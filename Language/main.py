@@ -93,7 +93,7 @@ class MyVisitor(gramatykaVisitor):
 
     def visitComparison(self, while_id):
         if self.used_lines > 100:
-            sys.exit("Error: Too many lines used")
+            quit()
         self.used_lines += 1
         for key, value in variables_dict.items():
             while_id = while_id.replace(key, str(value))
@@ -153,4 +153,5 @@ def run_best_program():
     with open('./best_program.txt', 'r') as file:
         data = file.read().replace('\n', '\t')
         visitFun(data, visitor)
-run_best_program()
+if __name__ == '__main__':
+    run_best_program()
