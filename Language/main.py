@@ -72,30 +72,41 @@ class MyVisitor(gramatykaVisitor):
             variables_dict[name] = int(input.pop(0))
         else:
             variables_dict[name] = self.visitExpression(data[1])
-    def visitWhile(self, ctx:gramatykaParser.WhileContext):
+
+
+    def visitWhile(self, ctx: gramatykaParser.WhileContext):
         while_id = ctx.getText()[6:ctx.getText().find('{')]
         while_id = while_id.replace('True', '1>0').replace('False', '0>1')
         new_while_id = while_id
         while 'input' in new_while_id:
             vale = int(input.pop(0)) if len(input) > 0 else 0
-            new_while_id = new_while_id[:new_while_id.find('input')] + str(vale) + new_while_id[new_while_id.find('input') + 5:]
+            new_while_id = new_while_id[:new_while_id.find('input')] + str(vale) + new_while_id[
+                                                                                   new_while_id.find('input') + 5:]
         to_check = self.visitComparison(new_while_id)
         while to_check:
-            visitFun(ctx.getText()[ctx.getText().find('{')+1:-1], visitor)
+            self.visitChildren(ctx)  # Properly visit the children nodes of the while statement
             new_while_id = while_id
             while 'input' in new_while_id:
                 vale = int(input.pop(0)) if len(input) > 0 else 0
                 new_while_id = new_while_id[:new_while_id.find('input')] + str(vale) + new_while_id[
-                                                                                                    new_while_id.find(
-                                                                                                        'input') + 5:]
+                                                                                       new_while_id.find('input') + 5:]
             to_check = self.visitComparison(new_while_id)
 
-    def visitComparison(self, while_id):
+    def visitComparison(self, ctx):
         if self.used_lines > 100:
-            quit()
+            print("Maximum recursion depth exceeded. Exiting program.")
+            sys.exit(0)
+
+        if isinstance(ctx, str):
+            while_id = ctx
+        else:
+            while_id = ctx.getText()
+
         self.used_lines += 1
+
         for key, value in variables_dict.items():
             while_id = while_id.replace(key, str(value))
+
         result = eval(while_id)
         return sympy.sympify(result)
 
@@ -143,6 +154,7 @@ def run(inp):
     clear_output_file()
     with open('./program.txt', 'r') as file:
         data = file.read().replace('\n', '\t')
+        visitor.used_lines = 0
         visitFun(data, visitor)
     input.clear()
 
@@ -151,6 +163,7 @@ def run_best_program():
     clear_output_file()
     with open('./best_program.txt', 'r') as file:
         data = file.read().replace('\n', '\t')
+        visitor.used_lines = 0
         visitFun(data, visitor)
 if __name__ == '__main__':
     run_best_program()

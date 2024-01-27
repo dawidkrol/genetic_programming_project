@@ -340,19 +340,8 @@ def fitness(program, input_data, target_output):
                 ftn.append(res_len / ex_len)
             else:
                 ftn.append(ex_len / res_len)
-    except RecognitionException as e:
-        print("ANTLR Recognition Error:")
-        print(f"Line {e.offendingToken.line}, Column {e.offendingToken.column}: {e.message}")
-
-    except FailedPredicateException as e:
-        print("ANTLR Failed Predicate Error:")
-        print(f"Line {e.offendingToken.line}, Column {e.offendingToken.column}: {e.message}")
-    except NoViableAltException as e:
-        print("ANTLR No Viable Alternative Error:")
-        print(f"Line {e.offendingToken.line}, Column {e.offendingToken.column}: {e.message}")
-    except:
-        print("ANTLR Error:")
-        serialized_program = return_program(program)
+    except BaseException as e:
+        print(e)
         with open('error.txt', "a") as file:
             file.write("\n_________________________________________________\n")
             file.write(serialized_program)
