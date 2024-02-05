@@ -84,7 +84,7 @@ class MyVisitor(gramatykaVisitor):
                                                                                    new_while_id.find('input') + 5:]
         to_check = self.visitComparison(new_while_id)
         while to_check:
-            self.visitChildren(ctx)  # Properly visit the children nodes of the while statement
+            self.visitChildren(ctx)
             new_while_id = while_id
             while 'input' in new_while_id:
                 vale = int(input.pop(0)) if len(input) > 0 else 0

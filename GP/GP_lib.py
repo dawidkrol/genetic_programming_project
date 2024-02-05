@@ -4,6 +4,7 @@ from time import sleep
 import numpy as np
 import program_variables as PV
 import program_evaluator as evaluator
+from fractions import Fraction
 import matplotlib.pyplot as plt
 from antlr4.error.Errors import RecognitionException, FailedPredicateException, NoViableAltException
 from GP.Models.ProgramModel import Program
@@ -191,9 +192,9 @@ def generate_program(max_depth, variables: set, max_width=None, options=None, is
         return get_used_values(variables)
 
     if value in {'if_statement', 'loop'}:
-        node = generate_if_statement() if value == 'if_statement' else generate_loop()
+        node = generate_if_statement() if (value == 'if_statement' or len(variables)==0) else generate_loop()
 
-        if value is 'if_statement':
+        if value == 'if_statement' or len(variables) == 0:
 
             condition = generate_program(2, variables, options=['comparison_operator'])
 
@@ -201,15 +202,14 @@ def generate_program(max_depth, variables: set, max_width=None, options=None, is
                 condition = generate_program(2, variables, options=['comparison_operator'])
 
         else:
-            node = generate_comparison_operator()
-            node.children = [
+            node1 = generate_comparison_operator()
+            node1.children = [
                 generate_program(max_depth - 1, variables,
                                  options=['generate_number_or_used_values']),
                 generate_program(max_depth - 1, variables,
                                  options=['used_values'])
             ]
-
-            condition = node
+            condition = node1
 
         body = generate_block(max_depth - 1, 3, variables)
 
@@ -342,7 +342,11 @@ def crossover(parent1: Program, parent2: Program):
 def mean_squared_error(output, target):
     return np.mean((output - target) ** 2)
 
-
+def convert_to_float(value):
+    try:
+        return float(Fraction(value))
+    except (ValueError, TypeError):
+        return None
 def fitness(program, input_data, target_output):
     ftn = []
     try:
@@ -355,12 +359,25 @@ def fitness(program, input_data, target_output):
             serialize_program(serialized_program, './program.txt')
             evaluator.run_generated(inp)
             result = evaluator.get_output()
+            result = [1 if x == 'True' else x for x in result]
+            result = [0 if x == 'False' else x for x in result]
             res_len = len(result)
             ex_len = len(target_output[i])
-            if res_len < ex_len:
-                ftn.append(res_len / ex_len)
+            # if res_len < ex_len:
+            #     ftn.append(res_len / ex_len)
+            # else:
+            #     ftn.append(ex_len / res_len)
+            if res_len == 0:
+                ftn.append(100)
             else:
-                ftn.append(ex_len / res_len)
+                result_numeric = [convert_to_float(x) for x in result if isinstance(x, (int, float, str))]
+                target_output_i_numeric = [convert_to_float(x) for x in target_output[i] if
+                                           isinstance(x, (int, float, str))]
+                result_numeric = [x for x in result_numeric if x is not None]
+                target_output_i_numeric = [x for x in target_output_i_numeric if x is not None]
+                mse = sum((a - b) ** 2 for a, b in zip(result_numeric, target_output_i_numeric)) / max(len(result_numeric),
+                                                                                                       len(target_output_i_numeric))
+                ftn.append(mse)
     except BaseException as e:
         print(e)
         with open('error.txt', "a") as file:
@@ -448,7 +465,7 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
                 max_fitness = fitness_score
 
         fitness_scores = [fitness(prog, input_data, output_data) for prog in population]
-
+        fitness_scores = [x if x != 0.0 else 100 for x in fitness_scores]
         max_fitness_index = fitness_scores.index(max(fitness_scores))
         min_fitness_index = fitness_scores.index(min(fitness_scores))
 
@@ -461,17 +478,18 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
         print(f'______________________{generation}_____________________________')
         print(f'Max Fitness: {fitness_scores[max_fitness_index]}')
         print(f'Avg Fitness: {avg_fitness}')
+        print(f'Min Fitness: {fitness_scores[min_fitness_index]}')
         avg_fitnesses.append(avg_fitness)
         max_fitnesses.append(fitness_scores[max_fitness_index])
         min_fitnesses.append(fitness_scores[min_fitness_index])
-        plt.axis([0, generation + 1, -1.0, 1.0])
+        plt.axis([0, generation + 1, -1.0, 30])
         plt.plot(range(0, generation + 1), avg_fitnesses, label="Avg Fitness")
         plt.plot(range(0, generation + 1), max_fitnesses, label="Max Fitness")
         plt.plot(range(0, generation + 1), min_fitnesses, label="Min Fitness")
         plt.legend()
         plt.pause(0.0000001)
 
-        if fitness_scores[max_fitness_index] >= 1.0:
+        if 0.25 >= fitness_scores[min_fitness_index] > 0:
             print("__________!!! SOLVED !!!__________")
             print(f"______________GENERATION: {generation}_________________")
             serialized_program = return_program(best_program)
