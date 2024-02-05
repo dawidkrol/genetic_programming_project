@@ -35,7 +35,6 @@ def generate_number(options=None):
     if option == 'int':
         return Node(str(random.randint(0, 9)))
 
-
 def generate_number_or_used_values(variables):
     options = ['int', 'input']
     weights = [5, 4]
@@ -51,6 +50,10 @@ def generate_number_or_used_values(variables):
         return Node('input')
     elif option == ['used_variables']:
         return Node(str(random.choice(list(variables))))
+
+
+def get_used_values(variables):
+    return Node(str(random.choice(list(variables))))
 
 
 def generate_comparison_operator():
@@ -183,12 +186,30 @@ def generate_program(max_depth, variables: set, max_width=None, options=None, is
                               'generate_logical_value'])
         ]
         return node
+
+    elif value == 'used_values':
+        return get_used_values(variables)
+
     if value in {'if_statement', 'loop'}:
         node = generate_if_statement() if value == 'if_statement' else generate_loop()
-        condition = generate_program(2, variables, options=['comparison_operator'])
 
-        if condition is None:
+        if value is 'if_statement':
+
             condition = generate_program(2, variables, options=['comparison_operator'])
+
+            if condition is None:
+                condition = generate_program(2, variables, options=['comparison_operator'])
+
+        else:
+            node = generate_comparison_operator()
+            node.children = [
+                generate_program(max_depth - 1, variables,
+                                 options=['generate_number_or_used_values']),
+                generate_program(max_depth - 1, variables,
+                                 options=['used_values'])
+            ]
+
+            condition = node
 
         body = generate_block(max_depth - 1, 3, variables)
 
