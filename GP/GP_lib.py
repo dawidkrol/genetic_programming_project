@@ -361,6 +361,8 @@ def fitness(program, input_data, target_output):
             result = evaluator.get_output()
             result = [1 if x == 'True' else x for x in result]
             result = [0 if x == 'False' else x for x in result]
+            result = [x for x in result if x != '']
+            result = [x for x in result if x != 'zoo']
             res_len = len(result)
             ex_len = len(target_output[i])
             # if res_len < ex_len:
@@ -368,13 +370,17 @@ def fitness(program, input_data, target_output):
             # else:
             #     ftn.append(ex_len / res_len)
             if res_len == 0:
-                ftn.append(100)
+                ftn.append(50)
             else:
                 result_numeric = [convert_to_float(x) for x in result if isinstance(x, (int, float, str))]
                 target_output_i_numeric = [convert_to_float(x) for x in target_output[i] if
                                            isinstance(x, (int, float, str))]
                 result_numeric = [x for x in result_numeric if x is not None]
                 target_output_i_numeric = [x for x in target_output_i_numeric if x is not None]
+                res_len = len(result_numeric)
+                ex_len = len(target_output_i_numeric)
+                to_for = ex_len - res_len if ex_len > res_len else 0
+                result_numeric.extend([0] * to_for)
                 mse = sum((a - b) ** 2 for a, b in zip(result_numeric, target_output_i_numeric)) / max(len(result_numeric),
                                                                                                        len(target_output_i_numeric))
                 ftn.append(mse)
@@ -437,7 +443,7 @@ def mutate_program_based_on_fitness(program, max_depth, max_width, mutation_rate
 
 def dynamic_mutation_rate(generation, generations, base_mutation_rate):
     # Example: Linearly decrease mutation rate over generations
-    return max(base_mutation_rate - (generation / generations) * base_mutation_rate, 0.1)
+    return max(base_mutation_rate - (generation / generations) * 2, 0.1)
 
 
 def run(input_data, output_data, population_size, max_depth, max_width, generations, base_mutation_rate):
@@ -465,13 +471,14 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
                 max_fitness = fitness_score
 
         fitness_scores = [fitness(prog, input_data, output_data) for prog in population]
-        fitness_scores = [x if x != 0.0 else 100 for x in fitness_scores]
         max_fitness_index = fitness_scores.index(max(fitness_scores))
+        fitness_scores = [max_fitness if x < 0 else x for x in fitness_scores]
         min_fitness_index = fitness_scores.index(min(fitness_scores))
+        print(fitness_scores[min_fitness_index])
 
-        best_program = population[max_fitness_index]
+        best_program = population[min_fitness_index]
 
-        add_to_programs(best_program, fitness_scores[max_fitness_index], generation)
+        add_to_programs(best_program, fitness_scores[min_fitness_index], generation)
 
         avg_fitness = sum(fitness_scores) / len(fitness_scores)
 
@@ -482,14 +489,14 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
         avg_fitnesses.append(avg_fitness)
         max_fitnesses.append(fitness_scores[max_fitness_index])
         min_fitnesses.append(fitness_scores[min_fitness_index])
-        plt.axis([0, generation + 1, -1.0, 30])
-        plt.plot(range(0, generation + 1), avg_fitnesses, label="Avg Fitness")
-        plt.plot(range(0, generation + 1), max_fitnesses, label="Max Fitness")
-        plt.plot(range(0, generation + 1), min_fitnesses, label="Min Fitness")
+        plt.axis([0, generation + 1, -1.0, 10])
+        plt.plot(range(0, generation + 1), np.log10(avg_fitnesses), label="Avg Fitness")
+        plt.plot(range(0, generation + 1), np.log10(max_fitnesses), label="Max Fitness")
+        plt.plot(range(0, generation + 1), np.log10(min_fitnesses), label="Min Fitness")
         plt.legend()
         plt.pause(0.0000001)
 
-        if 0.25 >= fitness_scores[min_fitness_index] > 0:
+        if 0.1 >= fitness_scores[min_fitness_index] >= 0:
             print("__________!!! SOLVED !!!__________")
             print(f"______________GENERATION: {generation}_________________")
             serialized_program = return_program(best_program)
@@ -505,11 +512,14 @@ def run(input_data, output_data, population_size, max_depth, max_width, generati
             population[idx] = mutate_program_based_on_fitness(prog, max_depth - 1, max_width, mutation_rate,
                                                               prog.variables, fitness_scores[idx])
 
-        parents = random.sample(population[:10], 2)
-        children = crossover(*parents)
-
-        population.remove(parents[0])
-        population.remove(parents[1])
+        sorted_fitness = sorted(fitness_scores)
+        sorted_fitness = sorted_fitness[:10]
+        top_scores = [fitness_scores.index(x) for x in sorted_fitness]
+        parents = [population[x] for x in top_scores]
+        parents_2 = random.sample(parents, 2)
+        children = crossover(*parents_2)
+        for parent in parents_2:
+            population.remove(parent)
         population.extend(children)
 
     print("__________!!! FINISHED !!!__________")
